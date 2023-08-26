@@ -1,25 +1,26 @@
 import { useEffect, useRef, useState } from "react"
-
-import Appbar from "./components/Appbar"
-import { Button, RadioGroup, Radio, Input } from "@nextui-org/react"
-import ColorPicker from "./components/ColorPicker"
 import { Point, LineType, Element, Free } from "./types/Elemenet"
 
+import Logo from './assets/icon.svg'
 import CanvasCursor from './assets/cursor.cur'
 
 import { socket } from "./socket"
-// import douglasPeucker from "./algorithms/DouglasPeucker"
 import chaikinSmooth from "./algorithms/ChaikinSmooth"
 import douglasPeucker from "./algorithms/DouglasPeucker"
+import { drawLine, drawRect, drawEllipse } from "./utils/CanvasUtils"
+import { Layout, Image, Radio, Space, ColorPicker, Button } from "antd"
+import { Header, Content, Footer } from "antd/es/layout/layout"
+import Input from "antd/es/input/Input"
+import Title from "antd/es/typography/Title"
+
+const CANVAS_WIDTH_PX = 750
+const CANVAS_HEIGHT_PX = 450
 
 
 function App() {
-	// constants
-	const CANVAS_WIDTH_PX = 1200
-	const CANVAS_HEIGHT_PX = 675
-
-	// vars
-	const [isConnected, setIsConnected] = useState<boolean>(false)
+	// socket.io vars
+	const [isIoServerConnected, setIsIoServerConnected] = useState<boolean>(false)
+	const [isConnectedToRoom, setIsConnectedToRoom] = useState<boolean>(false)
 	const [roomId, setRoomId] = useState<string>("1000")
 	const [msgTxt, setMsgTxt] = useState<string>("")
 
@@ -269,11 +270,11 @@ function App() {
 	// socket io
 	useEffect(() => {
 		function onConnect() {
-			setIsConnected(true)
+			setIsIoServerConnected(true)
 		}
 
 		function onDisconnect() {
-			setIsConnected(false)
+			setIsIoServerConnected(false)
 		}
 
 		function onMsg(data_: string) {
@@ -298,7 +299,7 @@ function App() {
 		}
 	}, [])
 
-	// draw functions
+	// draw function
 	const drawDrawnElements = (context: CanvasRenderingContext2D) => {
 		drawnElements.forEach(drawnElement => {
 			switch (drawnElement.name) {
@@ -358,70 +359,6 @@ function App() {
 		})
 	}
 
-	const drawLine = (context: CanvasRenderingContext2D, start: Point, end: Point, color: string, width: number, type: LineType) => {
-		context.beginPath()
-		context.moveTo(start.x, start.y)
-		context.lineTo(end.x, end.y)
-		context.strokeStyle = color
-		if (type == 'dashed')
-			context.setLineDash([width * 2, width])
-		else if (type == 'dotted')
-			context.setLineDash([width, width])
-		else
-			context.setLineDash([])
-		context.lineWidth = width
-		context.stroke()
-	}
-
-	const drawRect = (context: CanvasRenderingContext2D, start: Point, end: Point, color: string, lineWidth: number, lineType: LineType) => {
-		drawLine(
-			context,
-			start,
-			{ x: end.x, y: start.y },
-			color,
-			lineWidth,
-			lineType
-		)
-		drawLine(
-			context,
-			{ x: end.x, y: start.y },
-			end,
-			color,
-			lineWidth,
-			lineType
-		)
-		drawLine(
-			context,
-			end,
-			{ x: start.x, y: end.y },
-			color,
-			lineWidth,
-			lineType
-		)
-		drawLine(
-			context,
-			{ x: start.x, y: end.y },
-			start,
-			color,
-			lineWidth,
-			lineType
-		)
-	}
-
-	const drawEllipse = (context: CanvasRenderingContext2D, centre: Point, radiusX: number, radiusY: number, color: string, lineWidth: number, lineType: LineType) => {
-		context.beginPath()
-		context.ellipse(centre.x, centre.y, radiusX, radiusY, 0, 0, Math.PI * 2)
-		context.strokeStyle = color
-		if (lineType == 'dashed')
-			context.setLineDash([lineWidth * 2, lineWidth])
-		else if (lineType == 'dotted')
-			context.setLineDash([lineWidth, lineWidth])
-		else
-			context.setLineDash([])
-		context.lineWidth = lineWidth
-		context.stroke()
-	}
-
 	// event listeners
 	const handleMouseMove = (event: any) => {
 		const canvas = canvasRef!.current!
@@ -435,85 +372,88 @@ function App() {
 
 	// rendering
 	return (
-		<div className="flex flex-col">
-			<Appbar />
-
-			<div className="flex-1 flex flex-row items-center justify-start" >
-				<canvas
-					ref={canvasRef}
-					width={CANVAS_WIDTH_PX}
-					height={CANVAS_HEIGHT_PX}
+		<Layout className="layout">
+			<Header style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+				<Image
+					width={50}
+					src={Logo}
+					preview={false}
+				/>
+				<Title style={{ color: "#fff", margin: 0, marginLeft: 12 }}>Live Whiteboard Demo</Title>
+			</Header>
+			<Content style={{ padding: '20px 30px' }}>
+				<div
 					style={{
-						// width: `${CANVAS_WIDTH_PX}px`,
-						// height: `${CANVAS_HEIGHT_PX}px`,
-						background: '#eaeaea',
-						borderWidth: '2px',
-						borderColor: 'black',
-						cursor: `url(${CanvasCursor}), crosshair`
+						display: 'flex',
+						flexDirection: 'column',
+						alignItems: 'center'
 					}}
-					onMouseEnter={() => setMouseOverCanvas(true)}
-					onMouseMove={handleMouseMove}
-					onMouseDown={() => setMouseDown(true)}
-					onMouseUp={() => setMouseDown(false)}
-					onMouseLeave={() => setMouseOverCanvas(false)}
-				/>
-				<div className="flex-1 flex flex-row items-center justify-center" >
-					<Button style={{ margin: '10px' }} onClick={() => setDrawnElements([])} >Clear</Button>
-					<RadioGroup
-						style={{ margin: '10px' }}
-						label="Tool"
-						value={activeToolType}
-						onValueChange={setActiveToolType}
-					>
-						<Radio value="line">Line</Radio>
-						<Radio value="free">Free</Radio>
-						<Radio value="rectangle">Rectangle</Radio>
-						<Radio value="ellipse">Ellipse</Radio>
-					</RadioGroup>
-					<RadioGroup
-						style={{ margin: '10px' }}
-						label="Line type"
-						value={activeLineType}
-						onValueChange={val => setActiveLineType(val as LineType)}
-					>
-						<Radio value="simple">Simple</Radio>
-						<Radio value="dashed">Dashed</Radio>
-						<Radio value="dotted">Dotted</Radio>
-					</RadioGroup>
-					<ColorPicker initialColorHex={drawColor} onChange={setDrawColor} />
+				>
+					<canvas
+						ref={canvasRef}
+						width={CANVAS_WIDTH_PX}
+						height={CANVAS_HEIGHT_PX}
+						style={{
+							width: `${CANVAS_WIDTH_PX}px`,
+							height: `${CANVAS_HEIGHT_PX}px`,
+							background: '#eaeaea',
+							borderWidth: '2px',
+							borderColor: 'black',
+							cursor: `url(${CanvasCursor}), crosshair`,
+							marginBottom: '20px'
+						}}
+						onMouseEnter={() => setMouseOverCanvas(true)}
+						onMouseMove={handleMouseMove}
+						onMouseDown={() => setMouseDown(true)}
+						onMouseUp={() => setMouseDown(false)}
+						onMouseLeave={() => setMouseOverCanvas(false)}
+					/>
+					<Space direction="horizontal">
+						<Radio.Group value={activeToolType} onChange={e => setActiveToolType(e.target.value)}>
+							<Space direction="vertical">
+								<Radio value="line">Line</Radio>
+								<Radio value="free">Free</Radio>
+								<Radio value="rectangle">Rectangle</Radio>
+								<Radio value="ellipse">Ellipse</Radio>
+								<Radio value="eraser" disabled>Eraser</Radio>
+							</Space>
+						</Radio.Group>
+						<Radio.Group value={activeLineType} onChange={e => setActiveLineType(e.target.value)}>
+							<Space direction="vertical">
+								<Radio value="simple">Simple</Radio>
+								<Radio value="dashed">Dashed</Radio>
+								<Radio value="dotted">Dotted</Radio>
+							</Space>
+						</Radio.Group>
+						<ColorPicker value={drawColor} onChange={(_color, hex) => setDrawColor(hex)} />
+					</Space>
+					<div>
+						<p>Connected to server: <span style={{ fontWeight: 'bold', color: isIoServerConnected ? 'green' : 'red' }}>{isIoServerConnected ? 'True' : 'False'}</span></p>
+						<Space>
+							<Space size={0}>
+								<Input
+									value={roomId}
+									onChange={e => setRoomId(e.target.value)}
+									title="Room ID"
+									disabled={!isIoServerConnected}
+								/>
+								<Button disabled={!isIoServerConnected} onClick={() => { socket.emit('join_room', roomId); setIsConnectedToRoom(true) }}>Join room</Button>
+							</Space>
+							<Space size={0}>
+								<Input
+									value={msgTxt}
+									onChange={e => setMsgTxt(e.target.value)}
+									title="Message"
+									disabled={!isConnectedToRoom}
+								/>
+								<Button disabled={!isConnectedToRoom} onClick={() => { socket.emit('send_msg', JSON.stringify({ text: msgTxt, room_id: roomId })); setMsgTxt('') }} > Send message </Button>
+							</Space>
+						</Space>
+					</div>
 				</div>
-			</div>
-			<div className="flex-1 flex flex-col items-start justify-center px-2" >
-				<h1 className="my-1">Connected to server: {isConnected ? 'True' : 'False'}</h1>
-				<Input
-					className="my-1"
-					value={roomId}
-					onValueChange={setRoomId}
-					label="Room ID"
-				/>
-				<Button
-					className="my-1"
-					variant="flat"
-					color="primary"
-					onClick={() => socket.emit('join_room', roomId)}
-				>
-					Join room ^
-				</Button><Input
-					className="my-1"
-					value={msgTxt}
-					onValueChange={setMsgTxt}
-					label="Message"
-				/>
-				<Button
-					className="my-1"
-					variant="flat"
-					color="primary"
-					onClick={() => socket.emit('send_msg', JSON.stringify({ text: msgTxt, room_id: roomId }))}
-				>
-					Send message^
-				</Button>
-			</div>
-		</div>
+			</Content>
+			<Footer style={{ textAlign: 'center' }}>Create with ❤️ by Manbir Singh Judge</Footer>
+		</Layout>
 	)
 }
 
