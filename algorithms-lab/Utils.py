@@ -86,7 +86,7 @@ class Stroke:
                 pt2=self.points[i + 1].to_py(),
                 color=color,
                 thickness=1,
-                lineType=cv2.LINE_AA
+                lineType=cv2.LINE_4
             )
 
     def save(self, title: str):
