@@ -13,7 +13,7 @@ lines = []
 lines_ = cv2.HoughLinesP(
     edges,              # input edge image
     1,                  # distance resolution (in pixels)
-    np.pi / 180,        # angle resolution (in radians)
+    np.pi / 180,        # theta resolution (in radians)
     threshold=100,      # min number of votes for valid line
     minLineLength=5,    # min allowed length of line
     maxLineGap=10       # max allowed gap between line for joining them

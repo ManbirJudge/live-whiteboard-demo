@@ -1,17 +1,17 @@
 import json
+import random
 
 import matplotlib.pyplot as plt
 import numpy as np
-from matplotlib import cm
 from skimage.draw import line as draw_line
 from skimage.transform import hough_line, hough_line_peaks
 
-from Utils import Stroke
+from Utils import Stroke, PYPLOT_CMAPS
 
-# Constructing test image
-image = np.zeros((900, 1700))
+# constructing test canvas
+canvas = np.zeros((300, 400))
 
-with open(f'strokes/corner.json') as stroke_f:
+with open(f'strokes/line_1.json') as stroke_f:
     stroke = Stroke(dict_points=json.load(stroke_f))
 
 for i, point in enumerate(stroke.points):
@@ -19,43 +19,57 @@ for i, point in enumerate(stroke.points):
         continue
 
     next_point = stroke.points[i + 1]
+    canvas[draw_line(point.y, point.x, next_point.y, next_point.x)] = 255
 
-    image[draw_line(point.y, point.x, next_point.y, next_point.x)] = 255
+# classic straight-line hough transform
+tested_angles = np.linspace(
+    start=-np.pi / 2,
+    stop=np.pi / 2,
+    num=360,
+    endpoint=False
+)
+accumulator, angles, distances = hough_line(canvas, theta=tested_angles)
 
-# Classic straight-line Hough transform
-# Set a precision of 0.5 degree.
-tested_angles = np.linspace(-np.pi / 2, np.pi / 2, 360, endpoint=False)
-h, theta, d = hough_line(image, theta=tested_angles)
+print(accumulator.shape)
 
-# Generating figure 1
-fig, axes = plt.subplots(1, 3, figsize=(15, 6))
-ax = axes.ravel()
+# figures
+CMAP = 'RdYlBu_r'
 
-ax[0].imshow(image, cmap=cm.gray)
-ax[0].set_title('Input image')
-ax[0].set_axis_off()
+plt.imshow(canvas, cmap=CMAP)
+plt.title('Canvas')
+plt.axis('off')
 
-angle_step = 0.5 * np.diff(theta).mean()
-d_step = 0.5 * np.diff(d).mean()
-bounds = [np.rad2deg(theta[0] - angle_step),
-          np.rad2deg(theta[-1] + angle_step),
-          d[-1] + d_step, d[0] - d_step]
-ax[1].imshow(np.log(1 + h), extent=bounds, cmap=cm.gray, aspect=1 / 1.5)
-ax[1].set_title('Hough transform')
-ax[1].set_xlabel('Angles (degrees)')
-ax[1].set_ylabel('Distance (pixels)')
-ax[1].axis('image')
+# angle_step = .5 * np.diff(angles).mean()
+# d_step = .5 * np.diff(distances).mean()
+# bounds = [
+#     np.rad2deg(angles[0] - angle_step),
+#     np.rad2deg(angles[-1] + angle_step),
+#     distances[-1] + d_step, distances[0] - d_step
+# ]
+# print(angle_step)
+# print(d_step)
+# print(bounds)
 
-ax[2].imshow(image, cmap=cm.gray)
-ax[2].set_ylim((image.shape[0], 0))
-ax[2].set_axis_off()
-ax[2].set_title('Detected lines')
+plt.figure()
+plt.imshow(
+    # np.log(1 + accumulator),
+    accumulator,
+    cmap=CMAP,
+    # extent=bounds,
+    aspect=0.1
+)
+plt.title('Hough Transform')
+plt.xlabel('Angles (degrees)')
+plt.ylabel('Distance (pixels)')
 
-for _, angle, dist in zip(*hough_line_peaks(h, theta, d)):
+plt.figure()
+plt.imshow(canvas, cmap=CMAP)
+plt.title('Detected Lines')
+plt.axis('off')
+plt.ylim((canvas.shape[0], 0))
+
+for _, angle, dist in zip(*hough_line_peaks(accumulator, angles, distances)):
     (x0, y0) = dist * np.array([np.cos(angle), np.sin(angle)])
-    ax[2].axline((x0, y0), slope=np.tan(angle + np.pi / 2))
+    plt.axline((x0, y0), slope=np.tan(angle + np.pi / 2))
 
-    print('Drawn one line.')
-
-plt.tight_layout()
 plt.show()
