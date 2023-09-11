@@ -8,7 +8,7 @@ type Point = {
 
 type Line = {
     name: "line"
-
+    id: string
     start: Point
     end: Point
     type: LineType
@@ -19,7 +19,7 @@ type Line = {
 
 type Rectangle = {
     name: "rectangle"
-
+    id: string
     start: Point
     end: Point
     lineType: LineType
@@ -30,7 +30,7 @@ type Rectangle = {
 
 type Ellipse = {
     name: "ellipse"
-
+    id: string
     centre: Point
     radiusX: number
     radiusY: number
@@ -42,7 +42,7 @@ type Ellipse = {
 
 type Free = {
     name: "free"
-
+    id: string
     points: Array<Point>
     lineType: LineType
     lineWidth: number

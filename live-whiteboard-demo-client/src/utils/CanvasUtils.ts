@@ -1,10 +1,10 @@
-import { Point, LineType } from "../types/Elemenet"
+import { Point, LineType } from "../types/Element"
 
 
 const drawLine = (context: CanvasRenderingContext2D, start: Point, end: Point, color: string, width: number, type: LineType) => {
     context.beginPath()
-    context.moveTo(start.x, start.y)
-    context.lineTo(end.x, end.y)
+    context.moveTo(Math.round(start.x), Math.round(start.y))
+    context.lineTo(Math.round(end.x), Math.round(end.y))
     context.strokeStyle = color
     if (type == 'dashed')
         context.setLineDash([width * 2, width])
@@ -17,38 +17,23 @@ const drawLine = (context: CanvasRenderingContext2D, start: Point, end: Point, c
 }
 
 const drawRect = (context: CanvasRenderingContext2D, start: Point, end: Point, color: string, lineWidth: number, lineType: LineType) => {
-    drawLine(
-        context,
-        start,
-        { x: end.x, y: start.y },
-        color,
-        lineWidth,
-        lineType
-    )
-    drawLine(
-        context,
-        { x: end.x, y: start.y },
-        end,
-        color,
-        lineWidth,
-        lineType
-    )
-    drawLine(
-        context,
-        end,
-        { x: start.x, y: end.y },
-        color,
-        lineWidth,
-        lineType
-    )
-    drawLine(
-        context,
-        { x: start.x, y: end.y },
-        start,
-        color,
-        lineWidth,
-        lineType
-    )
+    context.beginPath()
+
+    context.moveTo(start.x, start.y)
+    context.lineTo(end.x, start.y)
+    context.lineTo(end.x, end.y)
+    context.lineTo(start.x, end.y)
+    context.lineTo(start.x, start.y)
+
+    context.strokeStyle = color
+    if (lineType == 'dashed')
+        context.setLineDash([lineWidth * 2, lineWidth])
+    else if (lineType == 'dotted')
+        context.setLineDash([lineWidth, lineWidth])
+    else
+        context.setLineDash([])
+    context.lineWidth = lineWidth
+    context.stroke()
 }
 
 const drawEllipse = (context: CanvasRenderingContext2D, centre: Point, radiusX: number, radiusY: number, color: string, lineWidth: number, lineType: LineType) => {
@@ -65,8 +50,32 @@ const drawEllipse = (context: CanvasRenderingContext2D, centre: Point, radiusX: 
     context.stroke()
 }
 
+const drawStorke = (context: CanvasRenderingContext2D, points: Array<Point>, color: string, lineWidth: number, lineType: LineType) => {
+    context.beginPath()
+    context.moveTo(Math.round(points[0].x), Math.round(points[0].y))
+
+    points.forEach((point: Point, i: number) => {
+        if (i === 0)
+            return
+
+        context.lineTo(Math.round(point.x), Math.round(point.y))
+    })
+
+    context.strokeStyle = color
+    if (lineType == 'dashed')
+        context.setLineDash([lineWidth * 2, lineWidth])
+    else if (lineType == 'dotted')
+        context.setLineDash([lineWidth, lineWidth])
+    else
+        context.setLineDash([])
+    context.lineWidth = lineWidth
+    context.stroke()
+
+}
+
 export {
     drawLine,
     drawRect,
-    drawEllipse
+    drawEllipse,
+    drawStorke
 }

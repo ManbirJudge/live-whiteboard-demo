@@ -1,4 +1,4 @@
-import { Point } from "../types/Elemenet"
+import { Point } from "../types/Element"
 
 function perpendicularDistance(point: Point, start: Point, end: Point): number {
     const area = Math.abs((end.x - start.x) * (start.y - point.y) - (start.x - point.x) * (end.y - start.y))

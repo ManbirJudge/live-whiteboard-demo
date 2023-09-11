@@ -1,6 +1,6 @@
-import { Point } from "../types/Elemenet"
+import { Point } from "../types/Element"
 
-function chaikinSmooth(points: Array<Point>, smoothingFactor: number): Array<Point> {
+function oldChaikinSmooth(points: Array<Point>, smoothingFactor: number): Array<Point> {
     let smoothedPoints: Array<Point> = []
 
     for (let i = 0; i < points.length - 1; i++) {
@@ -25,4 +25,24 @@ function chaikinSmooth(points: Array<Point>, smoothingFactor: number): Array<Poi
     return smoothedPoints
 }
 
+const chaikinSmooth = (points: Array<Point>, iterations: number = 5): Array<Point> => {
+    if (iterations === 0) return points
+
+    const l = points.length
+
+    const smoothed: Array<Point> = points.map((point, i) => {
+        if (i === points.length - 1) {
+            return []
+        }
+
+        return [
+            { x: 0.75 * point.x + 0.25 * points[(i + 1) % l].x, y: 0.75 * point.y + 0.25 * points[(i + 1) % l].y },
+            { x: 0.25 * point.x + 0.75 * points[(i + 1) % l].x, y: 0.25 * point.y + 0.75 * points[(i + 1) % l].y }
+        ]
+    }).flat()
+
+    return iterations === 1 ? smoothed : chaikinSmooth(smoothed, iterations - 1)
+}
+
 export default chaikinSmooth
+export { oldChaikinSmooth }
