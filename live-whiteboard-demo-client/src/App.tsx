@@ -334,8 +334,8 @@ function App() {
 			if (!(selectedId && pointInsideBox(mousePos, selectedBoundingRect))) {
 				setSelectedId(null)
 			}
-		} else {
-			if (startMousePos === mousePos) {
+
+			if (activeToolType === 'select') {
 				console.log('[DEBUG] Canvas clicked.')
 
 				drawnEles.forEach(Ele => {
@@ -371,8 +371,10 @@ function App() {
 
 				return
 			}
+		} else {
 
 			if (selectedId) {
+				console.log('[DEBUG] Mouse button up and there is a selected element.')
 				const transX = mousePos.x - startMousePos.x
 				const transY = mousePos.y - startMousePos.y
 
@@ -685,6 +687,7 @@ function App() {
 						<Space direction="horizontal">
 							<Radio.Group value={activeToolType} onChange={e => setActiveToolType(e.target.value)}>
 								<Space direction="vertical">
+									<Radio value="select">Select</Radio>
 									<Radio value="line">Line</Radio>
 									<Radio value="free">Free</Radio>
 									<Radio value="rectangle">Rectangle</Radio>
