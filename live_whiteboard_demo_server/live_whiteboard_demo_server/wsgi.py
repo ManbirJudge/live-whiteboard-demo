@@ -32,8 +32,14 @@ class MainNamespace(socketio.Namespace):
         }), room=data['room_id'], skip_sid=sid)
 
     def on_new_drawn_element(self, sid, data):
-        print(data)
-        sio.emit('add_new_drawn_element', data['element'], room=data['room_id'], skip_sid=sid)
+        sio.emit('drawn_element_added', data['element'], room=data['room_id'], skip_sid=sid)
+
+    def on_update_drawn_element(self, sid, data):
+        print('--------- Ele pdated')
+        sio.emit('drawn_element_updated', data['element'], room=data['room_id'], skip_sid=sid)
+
+    def on_delete_drawn_element(self, sid, data):
+        sio.emit('drawn_element_deleted', data['element_id'], room=data['room_id'], skip_sid=sid)
 
     def on_disconnect(self, sid):
         pass
