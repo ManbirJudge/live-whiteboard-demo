@@ -1,5 +1,9 @@
 import { Point } from "../types/Element"
-import BoundingBox from "../types/BoundingBox";
+import BoundingBox from "../types/BoundingBox"
+
+const distance = (p1: Point, p2: Point) => {
+    return Math.sqrt((p2.x - p1.x) ** 2 + (p2.y - p1.y) ** 2)
+}
 
 function pointInsideBox(point: Point, box: BoundingBox): boolean {
     if (
@@ -8,6 +12,13 @@ function pointInsideBox(point: Point, box: BoundingBox): boolean {
         point.y > box.start.y &&
         point.y < box.end.y
     ) {
+        return true
+    }
+
+    return false
+}
+const pointInsideCircle = (point: Point, centre: Point, radius: number) => {
+    if (distance(point, centre) <= radius) {
         return true
     }
 
@@ -34,6 +45,8 @@ function throttle(func: (...args: any) => void, wait: number) {
 
 
 export {
+    distance,
     pointInsideBox,
+    pointInsideCircle,
     throttle
 }

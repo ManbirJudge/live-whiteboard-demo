@@ -2,12 +2,12 @@ import { Navbar, NavbarBrand, NavbarContent, NavbarItem, Link, Button } from '@n
 
 function Appbar() {
     return (
-        <Navbar isBordered>
+        <Navbar className='sm:flex'>
             <NavbarBrand>
                 <p className="font-bold text-lg">Live Whiteboard Demo</p>
             </NavbarBrand>
-            <NavbarContent className=" sm:flex gap-4" justify="center">
-                {/* <NavbarItem>
+            <NavbarContent className="sm:flex gap-4" justify="center">
+                <NavbarItem>
                     <Link color="foreground" href="#">
                         Cuming
                     </Link>
@@ -21,10 +21,10 @@ function Appbar() {
                     <Link color="foreground" href="#">
                         ...
                     </Link>
-                </NavbarItem> */}
+                </NavbarItem>
             </NavbarContent>
             <NavbarContent justify="end">
-                <NavbarItem className="hidden lg:flex">
+                <NavbarItem className="lg:flex">
                     <Link href="#">Login</Link>
                 </NavbarItem>
                 <NavbarItem>

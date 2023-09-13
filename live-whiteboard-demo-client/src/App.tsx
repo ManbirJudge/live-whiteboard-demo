@@ -1,32 +1,51 @@
-import { createContext, useEffect, useRef, useState } from "react"
-import { Layout, Image, Radio, Space, ColorPicker, Button, Slider, notification } from "antd"
+import { CSSProperties, createContext, useEffect, useLayoutEffect, useRef, useState } from "react"
+import { Layout, Image, Radio, Space, ColorPicker, Button, Slider, notification, Card, Dropdown, MenuProps, InputNumber } from "antd"
 import { Header, Content, Footer } from "antd/es/layout/layout"
 import Input from "antd/es/input/Input"
 import Title from "antd/es/typography/Title"
+import { GithubFilled, DeleteFilled, CopyFilled, DownOutlined } from '@ant-design/icons'
 import { v4 as uuid } from "uuid"
 
 import Logo from './assets/icon.svg'
 import CanvasCursor from './assets/cursor.cur'
 
 import { Point, LineType, Element, Free } from "./types/Element"
-import { drawLine, drawRect, drawEllipse, drawStorke } from "./utils/CanvasUtils"
+import { drawRect, drawElement } from "./utils/CanvasUtils"
 import chaikinSmooth from "./algorithms/ChaikinSmooth"
 import douglasPeucker from "./algorithms/DouglasPeucker"
 import { socket } from "./socket"
 import BoundingBox from "./types/BoundingBox"
-import { pointInsideBox, throttle } from "./utils/Utils"
+import { pointInsideBox, pointInsideCircle, throttle } from "./utils/Utils"
+import { calcBoundingBox, pointInsideBoundingBox } from "./utils/BoundingBoxUtils"
+import { translateElement } from "./utils/ShapeUtils"
 
-// const CANVAS_WIDTH_PX = 400
-// const CANVAS_HEIGHT_PX = 300
-const CANVAS_WIDTH_PX = 1400
-const CANVAS_HEIGHT_PX = 800
+// const CANVAS_WIDTH_PX = 1400
+// const CANVAS_HEIGHT_PX = 800
+const CANVAS_WIDTH_PX = 800
+const CANVAS_HEIGHT_PX = 600
 
 const OUTPUT_STROKE_DATA = false
 const COPY_STROKE_DATA = false
 
-const DEBUG_COLOR = '#d2d2d298'
+const DEBUG_COLOR = '#4287f5'
 
 const Context = createContext({})
+
+const elementSelectPopupLineTypeMenuItems: MenuProps['items'] = [
+	{
+		label: 'Simple',
+		key: 'simple',
+	},
+	{
+		label: 'Dashed',
+		key: 'dashed',
+	},
+	{
+		label: 'Dotted',
+		key: 'dotted',
+	},
+]
+
 
 function App() {
 	// vars
@@ -49,7 +68,7 @@ function App() {
 	const canvasRef = useRef<HTMLCanvasElement | null>(null)
 	const frontCanvasRef = useRef<HTMLCanvasElement | null>(null)
 
-	const [canvasCursor, setCanvasCursor] = useState<string>(`url(${CanvasCursor}), crosshair`)
+	const [canvasCursor, setCanvasCursor] = useState<CSSProperties['cursor']>(`url(${CanvasCursor}), crosshair`)
 	const [drawColor, setDrawColor] = useState<string>('black')
 	const [drawWidth, setDrawWidth] = useState<number>(1.5)
 
@@ -184,13 +203,14 @@ function App() {
 			}
 		}
 
-		// if (newSelectedBoundingRect !== null) { setSelectedBoundingRect(newSelectedBoundingRect) }
 		setActiveEle(newActiveEle)
 
 		// selected ele things
 		let actualBoundingRect = newSelectedBoundingRect !== null ? newSelectedBoundingRect : selectedBoundingRect
 
 		if (selectedId !== null) {
+			const selectedEle = drawnEles.find(ele => ele.id === selectedId)!
+
 			// drawing the bounding box
 			drawRect(
 				frontContext,
@@ -200,12 +220,31 @@ function App() {
 				1.5,
 				'dashed'
 			)
+			// drawBoundingBox(frontContext, actualBoundingRect, drawnEles.find(ele => ele.id === selectedId)!)
 
 			// mouse cursor
 			if (pointInsideBox(mousePos, actualBoundingRect)) {
-				setCanvasCursor('move')
+				let newCursor: CSSProperties['cursor'] = 'move'
+
+				switch (selectedEle.name) {
+					case 'line':
+						if (pointInsideCircle(mousePos, selectedEle.start, 10)) {
+							newCursor = 'crosshair'
+						}
+						if (pointInsideCircle(mousePos, selectedEle.end, 10)) {
+							newCursor = 'crosshair'
+						}
+
+						break
+				}
+
+				setCanvasCursor(newCursor)
 			} else {
 				switch (activeToolType) {
+					case "select":
+						setCanvasCursor('pointer')
+						break
+
 					case "line":
 						setCanvasCursor(`url(${CanvasCursor}), crosshair`)
 						break
@@ -231,61 +270,10 @@ function App() {
 			return
 		}
 
-		// TODO: eraser
-		// if (activeToolType === 'eraser') {
-		// 	drawEllipse(frontContext, mousePos, drawWidth * 2, drawWidth * 2, 'black', 1, 'simple')
-		// }
-
 		// active ele
 		if (newActiveEle !== null && mouseDown) {
 			// drawing
-			switch (newActiveEle.name) {
-				case 'line':
-					drawLine(
-						frontContext,
-						newActiveEle.start,
-						newActiveEle.end,
-						newActiveEle.color,
-						newActiveEle.width,
-						newActiveEle.type
-					)
-					break
-
-				case 'rectangle':
-					drawRect(
-						frontContext,
-						newActiveEle.start,
-						newActiveEle.end,
-						newActiveEle.color,
-						newActiveEle.lineWidth,
-						newActiveEle.lineType
-					)
-
-					break
-
-				case 'ellipse':
-					drawEllipse(
-						frontContext,
-						newActiveEle.centre,
-						newActiveEle.radiusX,
-						newActiveEle.radiusY,
-						newActiveEle.color,
-						newActiveEle.lineWidth,
-						newActiveEle.lineType
-					)
-					break
-
-				case 'free':
-					drawStorke(
-						frontContext,
-						newActiveEle.points,
-						DEBUG_COLOR,
-						// newActiveEle.color,
-						newActiveEle.lineWidth,
-						newActiveEle.lineType
-					)
-					break
-			}
+			drawElement(frontContext, newActiveEle)
 		}
 	}, [mousePos])
 
@@ -310,10 +298,11 @@ function App() {
 			1.5,
 			'dashed'
 		)
+		// drawBoundingBox(frontContext, selectedBoundingRect, drawnEles.find(ele => ele.id === selectedId)!)
 	}, [selectedId])
 
-	useEffect(() => {
-		console.log('[DEBUG] Drawn Eles updated.')
+	useLayoutEffect(() => {
+		console.log('[DEBUG] Drawn elements updated.')
 
 		const canvas = canvasRef!.current!
 		const rect = canvas.getBoundingClientRect()
@@ -336,71 +325,46 @@ function App() {
 			}
 
 			if (activeToolType === 'select') {
-				console.log('[DEBUG] Canvas clicked.')
+				drawnEles.forEach(ele => {
+					const bbox = calcBoundingBox(ele)
 
-				drawnEles.forEach(Ele => {
-					switch (Ele.name) {
-						case 'free':
-							let sx: number, sy: number, ex: number, ey: number
-							sx = CANVAS_WIDTH_PX
-							sy = CANVAS_HEIGHT_PX
-							ex = ey = 0
+					if (pointInsideBoundingBox(mousePos, bbox)) {
+						setSelectedId(ele.id)
+						setSelectedBoundingRect(bbox)
 
-							Ele.points.forEach(point => {
-								if (point.x < sx)
-									sx = point.x
-								if (point.y < sy)
-									sy = point.y
-								if (point.x > ex)
-									ex = point.x
-								if (point.y > ey)
-									ey = point.y
-							})
-
-							if (sx < mousePos.x && sy < mousePos.y && mousePos.x < ex && mousePos.y < ey) {
-								setSelectedId(Ele.id)
-								setSelectedBoundingRect({
-									start: { x: sx, y: sy },
-									end: { x: ex, y: ey }
-								})
-							}
-
-							break
+						return // TODO: toggle between overlapping objects if mouse button is pressed on that overlapping area
 					}
 				})
 
 				return
 			}
 		} else {
-
 			if (selectedId) {
-				console.log('[DEBUG] Mouse button up and there is a selected element.')
-				const transX = mousePos.x - startMousePos.x
-				const transY = mousePos.y - startMousePos.y
+				const trans = {
+					x: mousePos.x - startMousePos.x,
+					y: mousePos.y - startMousePos.y
+				}
 
 				const selectedEleI = drawnEles.findIndex(ele => ele.id === selectedId)
 				const selectedEle = drawnEles[selectedEleI]
+				const updatedEle = translateElement(selectedEle, trans)
 
-				switch (selectedEle.name) {
-					case 'free':
-						selectedEle.points = selectedEle.points.map(p => ({ x: p.x + transX, y: p.y + transY }))
-						break
-				}
 
-				// const newDrawnEles = drawnEles
-				// newDrawnEles.splice(selectedEleI, 1)
-				// newDrawnEles.push(updatedEle)
-
-				setDrawnEles([selectedEle, ...drawnEles])
+				setDrawnEles([updatedEle, ...drawnEles])
 				setSelectedBoundingRect(prev => ({
 					start: {
-						x: prev.start.x + transX,
-						y: prev.start.y + transY,
+						x: prev.start.x + trans.x,
+						y: prev.start.y + trans.y,
 					}, end: {
-						x: prev.end.x + transX,
-						y: prev.end.y + transY,
+						x: prev.end.x + trans.x,
+						y: prev.end.y + trans.y,
 					},
 				}))
+
+				socket.emit('update_drawn_element', {
+					element: updatedEle,
+					room_id: roomId
+				})
 			} else {
 				let newEle: Element | null = null
 				let newEleId = uuid()
@@ -485,15 +449,17 @@ function App() {
 				setActiveEle(null)
 
 				if (isConnectedToRoom)
-					socket.emit('new_drawn_Ele', { Ele: newEle, room_id: roomId })
+					socket.emit('new_drawn_element', { element: newEle, room_id: roomId })
 			}
 		}
 	}, [mouseDown])
 
 	useEffect(() => {
-		console.log(`[DEBUG] Active tool type: ${activeToolType}`)
-
 		switch (activeToolType) {
+			case "select":
+				setCanvasCursor(`pointer`)
+				break
+
 			case "line":
 				setCanvasCursor(`url(${CanvasCursor}), crosshair`)
 				break
@@ -513,15 +479,46 @@ function App() {
 			case "eraser":
 				setCanvasCursor('pointer')
 				break
+
+			case "default":
+				setCanvasCursor('default')
+				break
 		}
 	}, [activeToolType])
 
 	// socket io
-	useEffect(() => {
-		console.log('[DEBUG] Socket.io use effect called.')
+	const onDrawnElementAdded = (data: Element) => {
+		console.log('[DEBUG] Someone drew new element.')
 
+		setDrawnEles(prev => [...prev, data])
+		drawDrawnEles(frontCanvasContext())
+	}
+	const onDrawnElementUpdated = (updatedEle: Element) => {
+		const updatedEleId = updatedEle.id
+
+		const updatedDrawnEles = drawnEles.map(ele => {
+			if (ele.id === updatedEleId) {
+				return updatedEle
+			} else {
+				return ele
+			}
+		})
+
+		console.log(drawnEles)
+		console.log(updatedDrawnEles)
+
+		setDrawnEles(updatedDrawnEles)
+		drawDrawnEles(frontCanvasContext())
+
+		console.log('[DEBUG] Someone updated drawn element.')
+	}
+
+	useEffect(() => {
 		function onConnect() {
 			setIsIoServerConnected(true)
+
+			socket.emit('join_room', roomId)
+			setIsConnectedToRoom(true)
 		}
 
 		function onDisconnect() {
@@ -536,78 +533,44 @@ function App() {
 			})
 		}
 
-		const onAddNewDrawEle = (data: any) => {
-			setDrawnEles(prev => [...prev, data as Element])
-		}
-
 		socket.on('connect', onConnect)
 		socket.on('disconnect', onDisconnect)
 		socket.on('msg', onMsg)
-		socket.on('add_new_drawn_Ele', onAddNewDrawEle)
+
+		socket.on('drawn_element_added', onDrawnElementAdded)
+		socket.on('drawn_element_updated', onDrawnElementUpdated)
+		socket.on('drawn_element_deleted', (ele_id: string) => console.log(`[DEBUG] Element deleted: ${ele_id}`))
 
 		return () => {
 			socket.off('connect', onConnect)
 			socket.off('disconnect', onDisconnect)
 			socket.off('msg', onMsg)
-			socket.off('add_new_drawn_Ele', onAddNewDrawEle)
+			socket.off('drawn_element_added', onDrawnElementAdded)
+			socket.off('drawn_element_updated', onDrawnElementUpdated)
+			socket.off('drawn_element_deleted', (ele_id: string) => console.log(`[DEBUG] Element deleted: ${ele_id}`))
 		}
 	}, [])
 
+	// shortcuts
+	useEffect(() => {
+		document.addEventListener('keydown', handleKeyDown);
+	}, [])
+
+	// utits
+	const frontCanvasContext = () => {
+		return canvasRef!.current!.getContext('2d')!
+	}
+
+
 	// draw function
 	const drawDrawnEles = (context: CanvasRenderingContext2D) => {
-		console.log('[DEBUG] Drawing drawn Eles.')
-
 		context.lineCap = 'round'
 		context.lineJoin = 'round'
 
 		context.save()
 
 		drawnEles.forEach(drawnEle => {
-			switch (drawnEle.name) {
-				case "line":
-					drawLine(
-						context,
-						drawnEle.start,
-						drawnEle.end,
-						drawnEle.color,
-						drawnEle.width,
-						drawnEle.type
-					)
-					break
-
-				case "rectangle":
-					drawRect(
-						context,
-						drawnEle.start,
-						drawnEle.end,
-						drawnEle.color,
-						drawnEle.lineWidth,
-						drawnEle.lineType
-					)
-
-					break
-
-				case "ellipse":
-					drawEllipse(
-						context,
-						drawnEle.centre,
-						drawnEle.radiusX,
-						drawnEle.radiusY,
-						drawnEle.color,
-						drawnEle.lineWidth,
-						drawnEle.lineType
-					)
-					break
-
-				case "free":
-					drawStorke(
-						context,
-						drawnEle.points,
-						drawnEle.color,
-						drawnEle.lineWidth,
-						drawnEle.lineType
-					)
-			}
+			drawElement(context, drawnEle)
 		})
 	}
 
@@ -622,8 +585,19 @@ function App() {
 		setMousePos({ x: mouseX, y: mouseY })
 	}
 
-	const onCanvasClick = (_event: any) => {
-		// console.log('[DEBUG] HTML canvas click event (generally ignored as we have a custom implementation).')
+	const handleKeyDown = (event: KeyboardEvent) => {
+		// event.preventDefault()
+
+		console.log(`[DEBUG]Some key is down:\nKey code (ASCII Code): ${event.keyCode}\nCharacter code (Unicode): ${event.charCode}\nCode (all info): ${event.code}\nKey (final expected result): ${event.key}`)
+
+		if (event.code == 'Delete') {
+			if (selectedId !== null) {
+				const selectedEleI = drawnEles.findIndex(ele => ele.id === selectedId)
+
+				const updatedDrawnEles = drawnEles
+				updatedDrawnEles.splice(selectedEleI, 1)
+			}
+		}
 	}
 
 	// rendering
@@ -631,13 +605,21 @@ function App() {
 		<Context.Provider value={{}}>
 			{notificationContextHolder}
 			<Layout className="layout">
-				<Header style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-					<Image
-						width={50}
-						src={Logo}
-						preview={false}
-					/>
-					<Title style={{ color: "#fff", margin: 0, marginLeft: 12 }}>Live Whiteboard Demo</Title>
+				<Header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+					<Space><div></div></Space>
+					<Space direction="horizontal" size='middle'>
+						<Image
+							width={50}
+							src={Logo}
+							preview={false}
+						/>
+						<Title style={{ color: "#fff", margin: 0 }}>Live Whiteboard Demo</Title>
+					</Space>
+					<Space direction="horizontal" size='middle'>
+						<Button icon={<GithubFilled />} href="https://github.com/ManbirJudge/live-whiteboard-demo" target="blank_" >
+							Github
+						</Button>
+					</Space>
 				</Header>
 				<Content style={{ padding: '20px 30px' }}>
 					<div
@@ -647,13 +629,16 @@ function App() {
 							alignItems: 'center'
 						}}
 					>
-						<div style={{
-							position: 'relative',
-							borderWidth: '2px',
-							borderColor: 'black',
-							cursor: canvasCursor,
-							marginBottom: '20px'
-						}}>
+						<div
+							className='canvas_container'
+							style={{
+								position: 'relative',
+								borderWidth: '2px',
+								borderColor: 'black',
+								cursor: canvasCursor,
+								marginBottom: '20px'
+							}}
+						>
 							<canvas
 								ref={canvasRef}
 								width={CANVAS_WIDTH_PX}
@@ -665,7 +650,6 @@ function App() {
 									pointerEvents: 'none'
 								}}
 							/>
-
 							<canvas
 								ref={frontCanvasRef}
 								width={CANVAS_WIDTH_PX}
@@ -678,12 +662,39 @@ function App() {
 									top: 0,
 									left: 0
 								}}
-								// onMouseMove={handleMouseMove}  NOTE: implemented
 								onMouseDown={() => setMouseDown(true)}
 								onMouseUp={() => setMouseDown(false)}
-								onClick={onCanvasClick}
 							/>
+							{selectedId !== null ?
+								<Card
+									style={{
+										width: 280,
+										position: 'absolute',
+										top: selectedBoundingRect.start.y - 60,
+										left: selectedBoundingRect.start.x,
+										pointerEvents: mouseDown ? 'none' : 'auto'
+									}}
+									bodyStyle={{
+										display: 'flex',
+										flexDirection: 'row',
+										justifyContent: 'space-between'
+									}}
+									size='small'
+								>
+									<ColorPicker size='small'
+									/>
+									<Dropdown menu={{ items: elementSelectPopupLineTypeMenuItems }} trigger={['click']}>
+										<Button size='small' icon={<DownOutlined />}>Simple</Button>
+									</Dropdown>
+									<InputNumber size='small' min={0.5} max={10} step={0.5} defaultValue={1.5} />
+									<Button size='small' icon={<CopyFilled />} />
+									<Button size='small' icon={<DeleteFilled />} />
+								</Card>
+								:
+								<></>
+							}
 						</div>
+
 						<Space direction="horizontal">
 							<Radio.Group value={activeToolType} onChange={e => setActiveToolType(e.target.value)}>
 								<Space direction="vertical">
@@ -703,8 +714,9 @@ function App() {
 								</Space>
 							</Radio.Group>
 							<Slider style={{ height: '100px' }} value={drawWidth} onChange={setDrawWidth} vertical max={10} min={0.5} step={0.5} />
-							<ColorPicker value={drawColor} onChange={(_color, hex) => { setDrawColor(hex); console.log(`[DEBUG] New selected draw color: ${hex}`) }} />
+							<ColorPicker value={drawColor} showText={true} onChange={(_color, hex) => { setDrawColor(hex); console.log(`[DEBUG] New selected draw color: ${hex}`) }} />
 						</Space>
+
 						<div>
 							<p>Connected to server: <span style={{ fontWeight: 'bold', color: isIoServerConnected ? 'green' : 'red' }}>{isIoServerConnected ? 'True' : 'False'}</span></p>
 							<Space>
