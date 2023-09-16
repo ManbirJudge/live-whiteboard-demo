@@ -187,6 +187,7 @@ const drawBoundingBox = (context: CanvasRenderingContext2D, bbox: BoundingBox, e
 
             break
         case "rectangle":
+            bbox.end.x + bbox.end.y
             break
         case "ellipse":
             break
