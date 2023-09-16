@@ -1,5 +1,10 @@
 # Live Whiteboard Demo
-This project demonstrates the optimal way to build a  live whiteboard application, standalone or as a part of a bigger project (something like Zoom). It is made to be fast, efficient, reliable and robust and on each device, either a slow one or fast one either with a slow or fast internet connection. It uses various specialized techneques for making the user experience better.
+This project demonstrates the optimal way to build a  live whiteboard application, standalone or as a part of a bigger project (something like Zoom). It is made to be fast, efficient, reliable and robust on each device, either a slow one or fast one either with a slow or fast internet connection. It uses various specialized techneques for making the user experience better.
+
+## Structure 
+- Client-side code in `live-whiteboard-demo-client`
+- Server-side code in `live_whiteboard_demo_server`
+- Testing for new techniques and algorithms in `algorithms-lab`
 
 ## Features
 - Simple shapes like lines, rectangles and ellipses.
@@ -26,7 +31,7 @@ This project demonstrates the optimal way to build a  live whiteboard applicatio
 ## Maybe ...
 - Text elements.
 - Pressure based stroke drawing.
-- More advanced elements like 
+- More advanced elements like -
     - Various graphs.
     - Tabular data like datasheets.
     - Flow charts.
