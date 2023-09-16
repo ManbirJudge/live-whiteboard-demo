@@ -43,7 +43,6 @@ function throttle(func: (...args: any) => void, wait: number) {
     }
 }
 
-
 export {
     distance,
     pointInsideBox,

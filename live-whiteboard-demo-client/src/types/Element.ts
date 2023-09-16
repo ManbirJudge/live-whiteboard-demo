@@ -1,5 +1,5 @@
 type LineType = "simple" | "dashed" | "dotted"
-type Arrows = "no" | "end" | "both"
+type Arrows = false | "end" | "both"
 
 type Point = {
     x: number
@@ -11,8 +11,8 @@ type Line = {
     id: string
     start: Point
     end: Point
-    type: LineType
-    width: number
+    lineType: LineType
+    lineWidth: number
     color: string
     arrows: Arrows
 }

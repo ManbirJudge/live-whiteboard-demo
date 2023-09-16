@@ -1,23 +1,24 @@
-import { CSSProperties, createContext, useEffect, useLayoutEffect, useRef, useState } from "react"
-import { Layout, Image, Radio, Space, ColorPicker, Button, Slider, notification, Card, Dropdown, MenuProps, InputNumber } from "antd"
-import { Header, Content, Footer } from "antd/es/layout/layout"
+import { CSSProperties, createContext, useEffect, useRef, useState } from "react"
+import { Layout, Radio, Space, ColorPicker, Button, Slider, notification, Card, Dropdown, InputNumber } from "antd"
+import { Content } from "antd/es/layout/layout"
 import Input from "antd/es/input/Input"
-import Title from "antd/es/typography/Title"
-import { GithubFilled, DeleteFilled, CopyFilled, DownOutlined } from '@ant-design/icons'
+import { DeleteFilled, CopyFilled, DownOutlined } from '@ant-design/icons'
 import { v4 as uuid } from "uuid"
 
-import Logo from './assets/icon.svg'
 import CanvasCursor from './assets/cursor.cur'
 
 import { Point, LineType, Element, Free } from "./types/Element"
+import BoundingBox from "./types/BoundingBox"
 import { drawRect, drawElement } from "./utils/CanvasUtils"
+import { calcBoundingBox, pointInsideBoundingBox } from "./utils/BoundingBoxUtils"
+import { pointInsideBox, pointInsideCircle, throttle } from "./utils/Utils"
+import { translateElement } from "./utils/ShapeUtils"
+import { randomColorHex } from "./utils/ColorUtils"
 import chaikinSmooth from "./algorithms/ChaikinSmooth"
 import douglasPeucker from "./algorithms/DouglasPeucker"
 import { socket } from "./socket"
-import BoundingBox from "./types/BoundingBox"
-import { pointInsideBox, pointInsideCircle, throttle } from "./utils/Utils"
-import { calcBoundingBox, pointInsideBoundingBox } from "./utils/BoundingBoxUtils"
-import { translateElement } from "./utils/ShapeUtils"
+import Appbar from "./components/Appbar"
+import Footer from "./components/Footer"
 
 // const CANVAS_WIDTH_PX = 1400
 // const CANVAS_HEIGHT_PX = 800
@@ -31,7 +32,7 @@ const DEBUG_COLOR = '#4287f5'
 
 const Context = createContext({})
 
-const elementSelectPopupLineTypeMenuItems: MenuProps['items'] = [
+const selectPopupLineTypeMenuItems = [
 	{
 		label: 'Simple',
 		key: 'simple',
@@ -58,7 +59,6 @@ function App() {
 	const [msgTxt, setMsgTxt] = useState<string>("")
 
 	// canvas mouse vars
-	// const [mouseOverCanvas, setMouseOverCanvas] = useState<boolean>(false)
 	const [mousePos, setMousePos] = useState<Point>({ x: 0, y: 0 })
 	const [startMousePos, setStartMousePos] = useState<Point>({ x: 0, y: 0 })
 
@@ -69,8 +69,8 @@ function App() {
 	const frontCanvasRef = useRef<HTMLCanvasElement | null>(null)
 
 	const [canvasCursor, setCanvasCursor] = useState<CSSProperties['cursor']>(`url(${CanvasCursor}), crosshair`)
-	const [drawColor, setDrawColor] = useState<string>('black')
-	const [drawWidth, setDrawWidth] = useState<number>(1.5)
+	const [drawColor, setDrawColor] = useState<string>(randomColorHex())
+	const [drawWidth, setDrawWidth] = useState<number>(3)
 
 	const [activeToolType, setActiveToolType] = useState<string>('free')
 	const [activeLineType, setActiveLineType] = useState<LineType>('simple')
@@ -80,6 +80,11 @@ function App() {
 
 	const [activeEle, setActiveEle] = useState<Element | null>(null)
 	const [drawnEles, setDrawnEles] = useState<Array<Element>>([])
+
+	// canvas selection tooltip container vars
+	const [selectionPopupColor, setSelectionPopupColor] = useState<string>(randomColorHex())
+	const [selectionPopupActiveLineType, setSelectionPopupActiveLineType] = useState<string>('simple')
+	const [selectionPopupLineWidth, setSelectionPopupLineWidth] = useState<number>(3)
 
 	// use effects
 	useEffect(() => {
@@ -92,7 +97,7 @@ function App() {
 		return () => {
 			frontCanvasRef!.current!.removeEventListener('mousemove', throttledHandleMouseMove)
 		}
-	}, [])
+	})
 
 	useEffect(() => {
 		const frontCanvas = frontCanvasRef!.current!
@@ -136,10 +141,10 @@ function App() {
 							name: 'line',
 							start: startMousePos,
 							end: mousePos,
-							type: activeLineType,
-							width: drawWidth,
+							lineType: activeLineType,
+							lineWidth: drawWidth,
 							color: drawColor,
-							arrows: "no"
+							arrows: false
 						}
 						break
 
@@ -278,45 +283,6 @@ function App() {
 	}, [mousePos])
 
 	useEffect(() => {
-		const frontCanvas = frontCanvasRef!.current!
-		const frontRect = frontCanvas.getBoundingClientRect()
-		const frontContext = frontCanvas.getContext('2d')!
-
-		// clearing the front canvas
-		frontContext.clearRect(0, 0, frontRect.width, frontRect.height)
-		frontContext.fillStyle = 'transparent'
-		frontContext.fillRect(0, 0, frontRect.width, frontRect.height)
-
-		if (selectedId === null)
-			return
-
-		drawRect(
-			frontContext,
-			selectedBoundingRect.start,
-			selectedBoundingRect.end,
-			DEBUG_COLOR,
-			1.5,
-			'dashed'
-		)
-		// drawBoundingBox(frontContext, selectedBoundingRect, drawnEles.find(ele => ele.id === selectedId)!)
-	}, [selectedId])
-
-	useLayoutEffect(() => {
-		console.log('[DEBUG] Drawn elements updated.')
-
-		const canvas = canvasRef!.current!
-		const rect = canvas.getBoundingClientRect()
-		const context = canvas.getContext('2d')!
-
-		// background
-		context.fillStyle = 'white'
-		context.fillRect(0, 0, rect.width, rect.height)
-
-		// drawn Eles
-		drawDrawnEles(context)
-	}, [drawnEles])
-
-	useEffect(() => {
 		if (mouseDown) {
 			setStartMousePos(mousePos)
 
@@ -329,14 +295,14 @@ function App() {
 					const bbox = calcBoundingBox(ele)
 
 					if (pointInsideBoundingBox(mousePos, bbox)) {
+						console.log(`[DEBUG] Element selected: ${ele.id}`)
+
 						setSelectedId(ele.id)
 						setSelectedBoundingRect(bbox)
 
-						return // TODO: toggle between overlapping objects if mouse button is pressed on that overlapping area
+						return
 					}
 				})
-
-				return
 			}
 		} else {
 			if (selectedId) {
@@ -345,12 +311,12 @@ function App() {
 					y: mousePos.y - startMousePos.y
 				}
 
-				const selectedEleI = drawnEles.findIndex(ele => ele.id === selectedId)
-				const selectedEle = drawnEles[selectedEleI]
-				const updatedEle = translateElement(selectedEle, trans)
+				const updatedDrawnEles = [...drawnEles]
 
+				let selectedEle = updatedDrawnEles.find(ele => ele.id === selectedId)!
+				selectedEle = translateElement(selectedEle, trans)
 
-				setDrawnEles([updatedEle, ...drawnEles])
+				setDrawnEles(updatedDrawnEles)
 				setSelectedBoundingRect(prev => ({
 					start: {
 						x: prev.start.x + trans.x,
@@ -362,97 +328,164 @@ function App() {
 				}))
 
 				socket.emit('update_drawn_element', {
-					element: updatedEle,
+					element: selectedEle,
 					room_id: roomId
 				})
-			} else {
-				let newEle: Element | null = null
-				let newEleId = uuid()
 
-				switch (activeToolType) {
-					case 'line':
-						newEle = {
-							id: newEleId,
-							name: 'line',
-							start: startMousePos,
-							end: mousePos,
-							type: activeLineType,
-							width: drawWidth,
-							color: drawColor,
-							arrows: "no"
-						}
-						break
-
-					case 'rectangle':
-						newEle = {
-							id: newEleId,
-							name: 'rectangle',
-							start: startMousePos,
-							end: mousePos,
-							lineType: activeLineType,
-							lineWidth: drawWidth,
-							color: drawColor,
-							fill: false
-						}
-						break
-
-					case 'ellipse':
-						const centre: Point = {
-							x: (startMousePos.x + mousePos.x) / 2,
-							y: (startMousePos.y + mousePos.y) / 2
-						}
-
-						newEle = {
-							id: newEleId,
-							name: 'ellipse',
-							centre: centre,
-							radiusX: Math.abs(mousePos.x - startMousePos.x) / 2,
-							radiusY: Math.abs(mousePos.y - startMousePos.y) / 2,
-							lineType: activeLineType,
-							lineWidth: drawWidth,
-							color: drawColor,
-							fill: false
-						}
-						break
-
-					case 'free':
-						newEle = activeEle!
-						break
-				}
-
-				// happens when the apps is loaded for the first time
-				if (newEle === undefined || newEle === null) {
-					return
-				}
-
-				if (newEle.name == 'free') {
-					if (newEle.points.length <= 1)
-						return
-
-					const first_point = newEle.points[0]
-
-					const a_ = newEle.points.length
-					newEle.points = chaikinSmooth(newEle.points, 4)
-					const b_ = newEle.points.length
-					newEle.points = [first_point, ...douglasPeucker(newEle.points, 0.75)]
-					const c_ = newEle.points.length
-
-					console.log(`Original: ${a_} \nAfter Chaikin: ${b_} \nAfter Douglas-Peucker: ${c_}`)
-
-					if (OUTPUT_STROKE_DATA)
-						console.log(JSON.stringify(newEle.points))
-					if (COPY_STROKE_DATA)
-						navigator.clipboard.writeText(JSON.stringify(newEle.points))
-				}
-
-				setDrawnEles([...drawnEles, newEle])
-				setActiveEle(null)
-
-				if (isConnectedToRoom)
-					socket.emit('new_drawn_element', { element: newEle, room_id: roomId })
+				return
 			}
+
+			let newEle: Element | null = null
+			let newEleId = uuid()
+
+			switch (activeToolType) {
+				case 'line':
+					newEle = {
+						id: newEleId,
+						name: 'line',
+						start: startMousePos,
+						end: mousePos,
+						lineType: activeLineType,
+						lineWidth: drawWidth,
+						color: drawColor,
+						arrows: false
+					}
+					break
+
+				case 'rectangle':
+					newEle = {
+						id: newEleId,
+						name: 'rectangle',
+						start: startMousePos,
+						end: mousePos,
+						lineType: activeLineType,
+						lineWidth: drawWidth,
+						color: drawColor,
+						fill: false
+					}
+					break
+
+				case 'ellipse':
+					const centre: Point = {
+						x: (startMousePos.x + mousePos.x) / 2,
+						y: (startMousePos.y + mousePos.y) / 2
+					}
+
+					newEle = {
+						id: newEleId,
+						name: 'ellipse',
+						centre: centre,
+						radiusX: Math.abs(mousePos.x - startMousePos.x) / 2,
+						radiusY: Math.abs(mousePos.y - startMousePos.y) / 2,
+						lineType: activeLineType,
+						lineWidth: drawWidth,
+						color: drawColor,
+						fill: false
+					}
+					break
+
+				case 'free':
+					newEle = activeEle!
+					break
+			}
+
+			// happens when the apps is loaded for the first time
+			if (newEle === undefined || newEle === null) {
+				return
+			}
+
+			if (newEle.name == 'free') {
+				if (newEle.points.length <= 1)
+					return
+
+				const first_point = newEle.points[0]
+
+				const a_ = newEle.points.length
+				newEle.points = chaikinSmooth(newEle.points, 4)
+				const b_ = newEle.points.length
+				newEle.points = [first_point, ...douglasPeucker(newEle.points, 0.75)]
+				const c_ = newEle.points.length
+
+				console.log(`Original: ${a_} \nAfter Chaikin: ${b_} \nAfter Douglas-Peucker: ${c_}`)
+
+				if (OUTPUT_STROKE_DATA)
+					console.log(JSON.stringify(newEle.points))
+				if (COPY_STROKE_DATA)
+					navigator.clipboard.writeText(JSON.stringify(newEle.points))
+			}
+
+			setDrawnEles([...drawnEles, newEle])
+			setActiveEle(null)
+
+			if (isConnectedToRoom)
+				socket.emit('new_drawn_element', { element: newEle, room_id: roomId })
 		}
 	}, [mouseDown])
+
+	useEffect(() => {
+		const frontCanvas = frontCanvasRef!.current!
+		const frontRect = frontCanvas.getBoundingClientRect()
+		const frontContext = frontCanvas.getContext('2d')!
+
+
+		// clearing the front canvas
+		frontContext.clearRect(0, 0, frontRect.width, frontRect.height)
+		frontContext.fillStyle = 'transparent'
+		frontContext.fillRect(0, 0, frontRect.width, frontRect.height)
+
+		// if something was un-selected, skip the following steps
+		if (selectedId === null)
+			return
+
+		const selectedEle = drawnEles.find(ele => ele.id === selectedId)!
+
+		// drawing the bounding box
+		drawRect(
+			frontContext,
+			selectedBoundingRect.start,
+			selectedBoundingRect.end,
+			DEBUG_COLOR,
+			1.5,
+			'dashed'
+		)
+		// drawBoundingBox(frontContext, selectedBoundingRect, drawnEles.find(ele => ele.id === selectedId)!)
+
+		// setting up selection popup info
+		setSelectionPopupColor(selectedEle.color)
+		setSelectionPopupActiveLineType(selectedEle.lineType)
+		setSelectionPopupLineWidth(selectedEle.lineWidth)
+	}, [selectedId])
+
+	useEffect(() => {
+		if (selectedId === null)
+			return
+
+		const updatedDrawnEles = [...drawnEles]
+
+		const selectedEle = updatedDrawnEles.find(val => val.id === selectedId)!
+
+		selectedEle.color = selectionPopupColor
+		selectedEle.lineType = selectionPopupActiveLineType as LineType
+		selectedEle.lineWidth = selectionPopupLineWidth
+
+		setDrawnEles(updatedDrawnEles)
+	}, [selectionPopupColor, selectionPopupActiveLineType, selectionPopupLineWidth])
+
+	useEffect(() => {
+		// console.log(`[DEBUG] Drawn elements updated:\n${JSON.stringify(drawnEles)}`)
+		console.log(`[DEBUG] Drawn elements updated.`)
+
+		const canvas = canvasRef!.current!
+		const rect = canvas.getBoundingClientRect()
+		const context = canvas.getContext('2d')!
+
+		// background
+		context.fillStyle = 'white'
+		context.fillRect(0, 0, rect.width, rect.height)
+
+		// drawn Eles
+		drawDrawnEles(context)
+	}, [drawnEles])
 
 	useEffect(() => {
 		switch (activeToolType) {
@@ -504,9 +537,6 @@ function App() {
 			}
 		})
 
-		console.log(drawnEles)
-		console.log(updatedDrawnEles)
-
 		setDrawnEles(updatedDrawnEles)
 		drawDrawnEles(frontCanvasContext())
 
@@ -549,24 +579,25 @@ function App() {
 			socket.off('drawn_element_updated', onDrawnElementUpdated)
 			socket.off('drawn_element_deleted', (ele_id: string) => console.log(`[DEBUG] Element deleted: ${ele_id}`))
 		}
-	}, [])
+	})
 
 	// shortcuts
 	useEffect(() => {
-		document.addEventListener('keydown', handleKeyDown);
-	}, [])
+		document.addEventListener('keydown', handleKeyDown)
+
+		return () => {
+			document.removeEventListener('keydown', handleKeyDown)
+		}
+	})
 
 	// utits
 	const frontCanvasContext = () => {
 		return canvasRef!.current!.getContext('2d')!
 	}
 
-
 	// draw function
 	const drawDrawnEles = (context: CanvasRenderingContext2D) => {
-		context.lineCap = 'round'
 		context.lineJoin = 'round'
-
 		context.save()
 
 		drawnEles.forEach(drawnEle => {
@@ -586,18 +617,28 @@ function App() {
 	}
 
 	const handleKeyDown = (event: KeyboardEvent) => {
-		// event.preventDefault()
+		let handled = false
 
-		console.log(`[DEBUG]Some key is down:\nKey code (ASCII Code): ${event.keyCode}\nCharacter code (Unicode): ${event.charCode}\nCode (all info): ${event.code}\nKey (final expected result): ${event.key}`)
+		// console.log(`[DEBUG]Some key is down:\nKey code (ASCII Code): ${event.keyCode}\nCharacter code (Unicode): ${event.charCode}\nCode (all info): ${event.code}\nKey (final expected result): ${event.key}`)
 
-		if (event.code == 'Delete') {
+		if (event.code === 'Delete') {
 			if (selectedId !== null) {
 				const selectedEleI = drawnEles.findIndex(ele => ele.id === selectedId)
 
 				const updatedDrawnEles = drawnEles
 				updatedDrawnEles.splice(selectedEleI, 1)
+
+				handled = true
 			}
 		}
+		else if (event.code === 'KeyD') {
+			console.log(drawnEles)
+
+			handled = true
+		}
+
+		if (handled)
+			event.preventDefault()
 	}
 
 	// rendering
@@ -605,22 +646,7 @@ function App() {
 		<Context.Provider value={{}}>
 			{notificationContextHolder}
 			<Layout className="layout">
-				<Header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-					<Space><div></div></Space>
-					<Space direction="horizontal" size='middle'>
-						<Image
-							width={50}
-							src={Logo}
-							preview={false}
-						/>
-						<Title style={{ color: "#fff", margin: 0 }}>Live Whiteboard Demo</Title>
-					</Space>
-					<Space direction="horizontal" size='middle'>
-						<Button icon={<GithubFilled />} href="https://github.com/ManbirJudge/live-whiteboard-demo" target="blank_" >
-							Github
-						</Button>
-					</Space>
-				</Header>
+				<Appbar />
 				<Content style={{ padding: '20px 30px' }}>
 					<div
 						style={{
@@ -681,12 +707,16 @@ function App() {
 									}}
 									size='small'
 								>
-									<ColorPicker size='small'
-									/>
-									<Dropdown menu={{ items: elementSelectPopupLineTypeMenuItems }} trigger={['click']}>
-										<Button size='small' icon={<DownOutlined />}>Simple</Button>
+									<ColorPicker value={selectionPopupColor} onChangeComplete={color => { setSelectionPopupColor(color.toHexString()) }} size='small' />
+									<Dropdown menu={{ items: selectPopupLineTypeMenuItems, onClick: info => { setSelectionPopupActiveLineType(info.key) } }} trigger={['click']} arrow>
+										<Button
+											size='small'
+											icon={<DownOutlined />}
+										>
+											{`${selectPopupLineTypeMenuItems!.find(val => val!.key === selectionPopupActiveLineType)!.label}`}
+										</Button>
 									</Dropdown>
-									<InputNumber size='small' min={0.5} max={10} step={0.5} defaultValue={1.5} />
+									<InputNumber size='small' min={0.5} max={10} step={0.5} value={selectionPopupLineWidth} onChange={val => val ? setSelectionPopupLineWidth(val) : null} />
 									<Button size='small' icon={<CopyFilled />} />
 									<Button size='small' icon={<DeleteFilled />} />
 								</Card>
@@ -714,7 +744,7 @@ function App() {
 								</Space>
 							</Radio.Group>
 							<Slider style={{ height: '100px' }} value={drawWidth} onChange={setDrawWidth} vertical max={10} min={0.5} step={0.5} />
-							<ColorPicker value={drawColor} showText={true} onChange={(_color, hex) => { setDrawColor(hex); console.log(`[DEBUG] New selected draw color: ${hex}`) }} />
+							<ColorPicker value={drawColor} showText={true} onChangeComplete={color => { setDrawColor(color.toHexString()); console.log(`[DEBUG] New selected draw color: ${color}`) }} />
 						</Space>
 
 						<div>
@@ -742,7 +772,7 @@ function App() {
 						</div>
 					</div>
 				</Content>
-				<Footer style={{ textAlign: 'center' }}>Made with ❤️ by <a href="https://github.com/ManbirJudge" target="_blank">Manbir Judge</a></Footer>
+				<Footer />
 			</Layout>
 		</Context.Provider>
 	)

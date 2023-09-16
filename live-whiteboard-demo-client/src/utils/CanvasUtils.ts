@@ -1,5 +1,7 @@
 import BoundingBox from "../types/BoundingBox"
-import { Point, LineType, Element } from "../types/Element"
+import { Point, LineType, Element, Arrows } from "../types/Element"
+
+const LINE_ARROW_RAY_LENGTH = 15
 
 const drawElement = (context: CanvasRenderingContext2D, element: Element) => {
     switch (element.name) {
@@ -9,8 +11,9 @@ const drawElement = (context: CanvasRenderingContext2D, element: Element) => {
                 element.start,
                 element.end,
                 element.color,
-                element.width,
-                element.type
+                element.lineWidth,
+                element.lineType,
+                element.arrows
             )
             break
 
@@ -49,10 +52,42 @@ const drawElement = (context: CanvasRenderingContext2D, element: Element) => {
     }
 }
 
-const drawLine = (context: CanvasRenderingContext2D, start: Point, end: Point, color: string, width: number, type: LineType) => {
+const drawLine = (context: CanvasRenderingContext2D, start: Point, end: Point, color: string, width: number, type: LineType, arrows: Arrows) => {
+    console.log('Drawing line')
+    if (type !== 'simple') {
+        context.lineCap = 'butt'
+        context.save()
+    } else {
+        context.lineCap = 'round'
+        context.save()
+    }
+
     context.beginPath()
     context.moveTo(Math.round(start.x), Math.round(start.y))
     context.lineTo(Math.round(end.x), Math.round(end.y))
+
+    console.log(arrows)
+    if (arrows == "end") {
+        const angle = Math.atan2(end.y - start.y, end.x - start.x)
+
+        context.lineTo(end.x - LINE_ARROW_RAY_LENGTH * Math.cos(angle - Math.PI / 6), end.y - LINE_ARROW_RAY_LENGTH * Math.sin(angle - Math.PI / 6))
+        context.moveTo(end.x, end.y)
+        context.lineTo(end.x - LINE_ARROW_RAY_LENGTH * Math.cos(angle + Math.PI / 6), end.y - LINE_ARROW_RAY_LENGTH * Math.sin(angle + Math.PI / 6))
+    } else if (arrows == "both") {
+        const angle1 = Math.atan2(end.y - start.y, end.x - start.x)
+
+        context.lineTo(end.x - LINE_ARROW_RAY_LENGTH * Math.cos(angle1 - Math.PI / 6), end.y - LINE_ARROW_RAY_LENGTH * Math.sin(angle1 - Math.PI / 6))
+        context.moveTo(end.x, end.y)
+        context.lineTo(end.x - LINE_ARROW_RAY_LENGTH * Math.cos(angle1 + Math.PI / 6), end.y - LINE_ARROW_RAY_LENGTH * Math.sin(angle1 + Math.PI / 6))
+
+        const angle2 = Math.atan2(start.y - end.y, start.x - end.x)
+
+        context.moveTo(start.x, start.y)
+        context.lineTo(start.x - LINE_ARROW_RAY_LENGTH * Math.cos(angle2 - Math.PI / 6), start.y - LINE_ARROW_RAY_LENGTH * Math.sin(angle2 - Math.PI / 6))
+        context.moveTo(start.x, start.y)
+        context.lineTo(start.x - LINE_ARROW_RAY_LENGTH * Math.cos(angle2 + Math.PI / 6), start.y - LINE_ARROW_RAY_LENGTH * Math.sin(angle2 + Math.PI / 6))
+    }
+
     context.strokeStyle = color
     if (type == 'dashed')
         context.setLineDash([width * 2, width])
@@ -64,6 +99,14 @@ const drawLine = (context: CanvasRenderingContext2D, start: Point, end: Point, c
     context.stroke()
 }
 const drawRect = (context: CanvasRenderingContext2D, start: Point, end: Point, color: string, lineWidth: number, lineType: LineType) => {
+    if (lineType !== 'simple') {
+        context.lineCap = 'butt'
+        context.save()
+    } else {
+        context.lineCap = 'round'
+        context.save()
+    }
+
     context.beginPath()
 
     context.moveTo(start.x, start.y)
@@ -83,6 +126,14 @@ const drawRect = (context: CanvasRenderingContext2D, start: Point, end: Point, c
     context.stroke()
 }
 const drawEllipse = (context: CanvasRenderingContext2D, centre: Point, radiusX: number, radiusY: number, color: string, lineWidth: number, lineType: LineType) => {
+    if (lineType !== 'simple') {
+        context.lineCap = 'butt'
+        context.save()
+    } else {
+        context.lineCap = 'round'
+        context.save()
+    }
+
     context.beginPath()
     context.ellipse(centre.x, centre.y, radiusX, radiusY, 0, 0, Math.PI * 2)
     context.strokeStyle = color
@@ -96,6 +147,14 @@ const drawEllipse = (context: CanvasRenderingContext2D, centre: Point, radiusX: 
     context.stroke()
 }
 const drawStorke = (context: CanvasRenderingContext2D, points: Array<Point>, color: string, lineWidth: number, lineType: LineType) => {
+    if (lineType !== 'simple') {
+        context.lineCap = 'butt'
+        context.save()
+    } else {
+        context.lineCap = 'round'
+        context.save()
+    }
+
     context.beginPath()
     context.moveTo(Math.round(points[0].x), Math.round(points[0].y))
 

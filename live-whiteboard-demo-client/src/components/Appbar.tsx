@@ -1,39 +1,28 @@
-import { Navbar, NavbarBrand, NavbarContent, NavbarItem, Link, Button } from '@nextui-org/react'
+import { GithubFilled } from "@ant-design/icons"
+import { Space, Button, Image } from "antd"
+import { Header } from "antd/es/layout/layout"
+import Title from "antd/es/typography/Title"
+
+import Logo from '../assets/icon.svg'
 
 function Appbar() {
     return (
-        <Navbar className='sm:flex'>
-            <NavbarBrand>
-                <p className="font-bold text-lg">Live Whiteboard Demo</p>
-            </NavbarBrand>
-            <NavbarContent className="sm:flex gap-4" justify="center">
-                <NavbarItem>
-                    <Link color="foreground" href="#">
-                        Cuming
-                    </Link>
-                </NavbarItem>
-                <NavbarItem>
-                    <Link color="foreground" href="#">
-                        Soon
-                    </Link>
-                </NavbarItem>
-                <NavbarItem>
-                    <Link color="foreground" href="#">
-                        ...
-                    </Link>
-                </NavbarItem>
-            </NavbarContent>
-            <NavbarContent justify="end">
-                <NavbarItem className="lg:flex">
-                    <Link href="#">Login</Link>
-                </NavbarItem>
-                <NavbarItem>
-                    <Button as={Link} color="primary" href="/" variant="flat">
-                        Reload
-                    </Button>
-                </NavbarItem>
-            </NavbarContent>
-        </Navbar>
+        <Header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <Space><div></div></Space>
+            <Space direction="horizontal" size='middle'>
+                <Image
+                    width={50}
+                    src={Logo}
+                    preview={false}
+                />
+                <Title style={{ color: "#fff", margin: 0 }}>Live Whiteboard Demo</Title>
+            </Space>
+            <Space direction="horizontal" size='middle'>
+                <Button icon={<GithubFilled />} href="https://github.com/ManbirJudge/live-whiteboard-demo" target="blank_" >
+                    Github
+                </Button>
+            </Space>
+        </Header>
     )
 }
 
