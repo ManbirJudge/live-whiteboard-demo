@@ -95,8 +95,16 @@ class Stroke:
         plt.clf()
 
 
+def rgb_to_hex(rgb: Tuple[int, int, int]) -> str:
+    return '#%02x%02x%02x' % rgb
+
+
 def rand_color() -> Tuple[int, int, int]:
     return random.randint(0, 255), random.randint(0, 255), random.randint(0, 255)
+
+
+def rand_color_hex() -> str:
+    return rgb_to_hex(rand_color())
 
 
 def abstract_line(slope, intercept):
@@ -106,3 +114,21 @@ def abstract_line(slope, intercept):
     y_vals = intercept + slope * x_vals
 
     plt.plot(x_vals, y_vals, '--')
+
+
+def linspace(start, stop, num=50, endpoint=True):
+    num = int(num)
+
+    start = start * 1.
+    stop = stop * 1.
+
+    if num == 1:
+        yield stop
+        return
+    if endpoint:
+        step = (stop - start) / (num - 1)
+    else:
+        step = (stop - start) / num
+
+    for i in range(num):
+        yield start + step * i

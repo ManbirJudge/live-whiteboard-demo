@@ -4,5 +4,5 @@ A place where various smoothing, optimization and all other kinds of algorithms 
 ## TODOS
 - Checkout TODOS in top-level `README.md`.
 - Complete the Hough Transform algorithm.
-  - Better multiple peaks.
-  - Quanitization of the paramter space.
+  - ~~Better multiple peaks.~~
+  - Quantization of the parameter space.

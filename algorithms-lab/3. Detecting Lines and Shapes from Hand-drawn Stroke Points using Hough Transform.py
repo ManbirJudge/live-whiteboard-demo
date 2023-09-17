@@ -1,14 +1,15 @@
 import json
+import random
 
 import matplotlib.pyplot as plt
 import numpy as np
 from skimage.draw import line as draw_line
 from skimage.transform import hough_line, hough_line_peaks
 
-from Utils import Stroke
+from Utils import Stroke, PYPLOT_CMAPS
 
 # constructing test canvas
-canvas = np.zeros((300, 400))
+canvas = np.zeros((800, 1400))
 
 with open(f'strokes/line_1.json') as stroke_f:
     stroke = Stroke(dict_points=json.load(stroke_f))
@@ -32,7 +33,8 @@ accumulator, _, rhos = hough_line(canvas, theta=thetas)
 
 
 # figures
-CMAP = 'gray'
+CMAP = random.choice(PYPLOT_CMAPS)
+print(f'Colormap: {CMAP}')
 
 plt.imshow(canvas, cmap=CMAP)
 plt.title('Canvas')
@@ -42,11 +44,13 @@ plt.figure()
 plt.imshow(
     np.log(1 + accumulator),  # easier to see than just accumulator
     cmap=CMAP,
-    aspect=0.5
+    aspect=0.2
 )
 plt.title('Hough Transform')
 plt.xlabel('Angles (degrees)')
 plt.ylabel('Distance (pixels)')
+cbar = plt.colorbar(label='Votes')
+cbar.ax.set_yticklabels([])
 
 plt.figure()
 plt.imshow(canvas, cmap=CMAP)
@@ -54,7 +58,9 @@ plt.title('Detected Lines')
 plt.axis('off')
 plt.ylim((canvas.shape[0], 0))
 
-for _, angle, distance in zip(*hough_line_peaks(accumulator, thetas, rhos)):
+peaks = zip(*hough_line_peaks(accumulator, thetas, rhos))
+
+for _, angle, distance in peaks:
     x, y = distance * np.array([np.cos(angle), np.sin(angle)])
     plt.axline((x, y), slope=np.tan(angle + np.pi / 2))
 
