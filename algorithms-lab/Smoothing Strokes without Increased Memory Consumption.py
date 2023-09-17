@@ -150,18 +150,21 @@ stroke = Stroke(
                  {"x": 669.5, "y": 192}, {"x": 669.5, "y": 190}, {"x": 670.5, "y": 189}, {"x": 670.5, "y": 187},
                  {"x": 670.5, "y": 186}, {"x": 671.5, "y": 186}, {"x": 671.5, "y": 185}])
 chaikin = Stroke(tuple_points=chaikin_smooth(stroke.to_py(), iterations=3))
-rdped = Stroke(tuple_points=rdp(stroke.to_py(), epsilon=1))
-rdped_chaikin = Stroke(tuple_points=chaikin_smooth(rdped.to_py(), iterations=3))
+rdp_ = Stroke(tuple_points=rdp(stroke.to_py(), epsilon=1))
+rdp_chaikin = Stroke(tuple_points=chaikin_smooth(rdp_.to_py(), iterations=3))
+chaikin_rdp = Stroke(tuple_points=rdp(chaikin.to_py(), epsilon=1))  # the gold
 
 print(len(stroke))
 print(len(chaikin))
-print(len(rdped))
-print(len(rdped_chaikin))
+print(len(rdp_))
+print(len(rdp_chaikin))
+print(len(chaikin_rdp))
 
 stroke.save('Original')
 chaikin.save('Chaikin')
-rdped.save('Ramer-Douglas-Peucker')
-rdped_chaikin.save('RDPed Chaikin')
+rdp_.save('Ramer-Douglas-Peucker')
+rdp_chaikin.save('RDP Chaikin')
+rdp_chaikin.save('Chaikin RDP')
 
 plt.legend(['Original', 'Chaikin', 'Ramer-Douglas-Peucker (RDP)', 'RDPed Chaikin'])
 
