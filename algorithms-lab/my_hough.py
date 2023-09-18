@@ -3,7 +3,7 @@ import json
 import math
 import random
 from datetime import datetime
-from typing import Tuple, List
+from typing import Tuple, List, Iterable
 
 import cv2
 import numpy as np
@@ -12,17 +12,26 @@ from matplotlib import pyplot as plt
 from numba import jit
 from skimage import measure
 
-from Utils import Stroke, linspace, PYPLOT_CMAPS, rand_color, rand_color_hex
+from Utils import Stroke, linspace, PYPLOT_CMAPS, rand_color_hex, Point
 
 
 # functions
-def hough_py(img: List[List[int]], thetas: List[int] = None) -> (List[int], List[int], List[List[int]]):
+def hough_py(
+    img: List[List[int]],
+    thetas: List[int] = None,
+    quantize: bool = False,
+    k_size: Tuple[int, int] | Iterable | np.ndarray = (1, 1)  # TODO: implement
+) -> (
+    List[int],
+    List[int],
+    List[List[int]]
+):
     rho_max = int(math.ceil(math.sqrt(len(img) ** 2 + len(img[0]) ** 2)))  # diagonal of the image
 
     if thetas is None:
         thetas = list(linspace(
-            start=-np.pi / 2,
-            stop=np.pi / 2,
+            start=-math.pi / 2,
+            stop=math.pi / 2,
             num=360,
             endpoint=False
         ))
@@ -36,7 +45,24 @@ def hough_py(img: List[List[int]], thetas: List[int] = None) -> (List[int], List
 
             for i, theta in enumerate(thetas):
                 rho = int(round(x * math.cos(theta) + y * math.sin(theta)))
+
                 accumulator[rho + rho_max][i] += 1
+
+                if quantize:
+                    try:
+                        accumulator[rho + rho_max - 1][i - 1] += 1
+                        accumulator[rho + rho_max][i - 1] += 1
+                        accumulator[rho + rho_max + 1][i - 1] += 1
+
+                        accumulator[rho + rho_max - 1][i] += 1
+                        accumulator[rho + rho_max + 1][i] += 1
+
+                        accumulator[rho + rho_max - 1][i + 1] += 1
+                        accumulator[rho + rho_max][i + 1] += 1
+                        accumulator[rho + rho_max + 1][i + 1] += 1
+
+                    except IndexError:
+                        pass
 
     return thetas, rhos, accumulator
 
@@ -87,6 +113,31 @@ def hough_numba(img: np.ndarray | cv2.UMat, thetas: np.ndarray = None) -> (np.nd
             for i, theta in enumerate(thetas):
                 rho = int(np.round(x * np.cos(theta) + y * np.sin(theta)))
                 accumulator[rho + rho_max][i] += 1
+
+    return thetas, rhos, accumulator
+
+
+def hough_points_py(img_shape: Tuple[int, int], points: List[Point], thetas: List[int] = None) -> (
+        List[int],
+        List[int],
+        List[List[int]]
+):
+    rho_max = int(math.ceil(math.sqrt(img_shape[0] ** 2 + img_shape[1] ** 2)))  # diagonal of the image
+
+    if thetas is None:
+        thetas = list(linspace(
+            start=-math.pi / 2,
+            stop=math.pi / 2,
+            num=360,
+            endpoint=False
+        ))
+    rhos = range(-rho_max, rho_max, 1)
+    accumulator = [[0 for _ in range(len(thetas))] for __ in range(rho_max * 2)]
+
+    for point in points:
+        for i, theta in enumerate(thetas):
+            rho = int(round(point.x * math.cos(theta) + point.y * math.sin(theta)))
+            accumulator[rho + rho_max][i] += 1
 
     return thetas, rhos, accumulator
 
@@ -182,14 +233,14 @@ def prominent_peaks(
 
 
 def hough_peaks(
-        thetas: np.ndarray,         # List[int]
-        rhos: np.ndarray,           # List[int]
-        accumulator: np.ndarray,    # List[List[int]]
+        thetas: np.ndarray,  # List[int]
+        rhos: np.ndarray,  # List[int]
+        accumulator: np.ndarray,  # List[List[int]]
         min_rho=9,
         min_theta=10,
         threshold=None,
-        num_peaks=np.inf
-) -> (List[int | float], List[int | float]):
+        num_peaks=5
+) -> (List[int], List[int]):
     min_theta = min(min_theta, accumulator.shape[1])
 
     peaks, peak_theta_is, peak_rho_is = prominent_peaks(
@@ -217,7 +268,6 @@ if __name__ == '__main__':
 
     with open('strokes/line_1.json', 'r') as stroke_f:
         stroke = Stroke(dict_points=json.load(stroke_f))
-        points = stroke.to_py()
 
     canvas = np.ones(shape=(CANVAS_HEIGHT, CANVAS_WIDTH, 3), dtype=np.uint8) * 255
     stroke.draw_cv(canvas)
@@ -237,7 +287,7 @@ if __name__ == '__main__':
     # hough transform
     start_time = datetime.now()
 
-    thetas, rhos, accumulator = hough_py(edges)
+    thetas, rhos, accumulator = hough_py(edges, quantize=True, k_size=(1, 1))
 
     thetas = np.array(thetas)
     rhos = np.array(rhos)

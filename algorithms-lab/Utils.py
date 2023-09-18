@@ -4,6 +4,7 @@ from typing import List, Tuple, Dict
 import cv2
 import numpy as np
 from matplotlib import pyplot as plt
+from cmocean import cm
 
 PYPLOT_CMAPS = [
     'Accent', 'Accent_r', 'Blues', 'Blues_r', 'BrBG', 'BrBG_r', 'BuGn', 'BuGn_r', 'BuPu', 'BuPu_r',
@@ -25,7 +26,7 @@ PYPLOT_CMAPS = [
     'tab10', 'tab10_r', 'tab20', 'tab20_r', 'tab20b', 'tab20b_r', 'tab20c', 'tab20c_r', 'terrain',
     'terrain_r', 'turbo', 'turbo_r', 'twilight', 'twilight_r', 'twilight_shifted', 'twilight_shifted_r',
     'viridis', 'viridis_r', 'winter', 'winter_r'
-]
+] + [getattr(cm, cmap_name) for cmap_name in cm.cmapnames]
 
 
 class Point:
@@ -85,7 +86,7 @@ class Stroke:
                 pt1=point.to_py(),
                 pt2=self.points[i + 1].to_py(),
                 color=color,
-                thickness=1,
+                thickness=2,
                 lineType=cv2.LINE_4
             )
 
