@@ -1,5 +1,5 @@
 import json
-import time
+from datetime import datetime
 
 import cv2
 import numpy as np
@@ -7,10 +7,10 @@ import numpy as np
 from Utils import Stroke
 from my_hough import hough_py, hough_np, hough_numba
 
-CANVAS_WIDTH = 400
-CANVAS_HEIGHT = 300
+CANVAS_WIDTH = 1400
+CANVAS_HEIGHT = 800
 
-with open('strokes/square.json', 'r') as stroke_f:
+with open('strokes/1.json', 'r') as stroke_f:
     stroke = Stroke(dict_points=json.load(stroke_f))
     points = stroke.to_py()
 
@@ -29,22 +29,29 @@ edges = cv2.bitwise_not(
     )[1]
 ) / 255
 
-py_start = time.time_ns()
-thetas, rhos, accumulator = hough_py(edges)
-py_end = time.time_ns()
+thetas_ = np.linspace(
+    start=-np.pi / 2,
+    stop=np.pi / 2,
+    num=720,
+    endpoint=False
+)
 
-np_start = time.time_ns()
-thetas, rhos, accumulator = hough_np(edges)
-np_end = time.time_ns()
+py_start = datetime.now()
+thetas, rhos, accumulator = hough_py(edges, thetas=list(thetas_))
+py_end = datetime.now()
 
-numba_start = time.time_ns()
-thetas, rhos, accumulator = hough_numba(edges)
-numba_end = time.time_ns()
+np_start = datetime.now()
+thetas, rhos, accumulator = hough_np(edges, thetas=thetas_)
+np_end = datetime.now()
 
-py_duration = py_end - py_start
-np_duration = np_end - np_start
-numba_duration = numba_end - numba_start
+numba_start = datetime.now()
+thetas, rhos, accumulator = hough_numba(edges, thetas=thetas_)
+numba_end = datetime.now()
 
-print(f'Pure Python implementation took: {(py_duration / 1e+9):.2f} s')
-print(f'NumPy implementation took: {(np_duration / 1e+9):.2f} s')
-print(f'Numba implementation took: {(numba_duration / 1e+9):.2f} s')
+py_duration = (py_end - py_start).microseconds
+np_duration = (np_end - np_start).microseconds
+numba_duration = (numba_end - numba_start).microseconds
+
+print(f'Pure Python implementation took: {(py_duration / 1000):.2f} ms')
+print(f'NumPy implementation took: {(np_duration / 1000):.2f} ms')
+print(f'Numba implementation took: {(numba_duration / 1000):.2f} ms')

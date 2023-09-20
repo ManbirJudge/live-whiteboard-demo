@@ -6,5 +6,6 @@ A place where various smoothing, optimization and all other kinds of algorithms 
 - Complete the Hough Transform algorithm.
   - ~~Better multiple peaks.~~
   - ~~Quantization of the parameter space.~~
-  - Implement kernel size for quantization.
-  - Better quantization of parameter space by slightly decreasing the value of vote added to the surrounding cells as compared to the main cell.
+  - ~~Implement kernel size for quantization.~~
+  - ~~Better quantization of parameter space by slightly decreasing the value of vote added to the surrounding cells as compared to the main cell.~~
+  - More efficient Hough transform but IDK how.

@@ -26,7 +26,8 @@ PYPLOT_CMAPS = [
     'tab10', 'tab10_r', 'tab20', 'tab20_r', 'tab20b', 'tab20b_r', 'tab20c', 'tab20c_r', 'terrain',
     'terrain_r', 'turbo', 'turbo_r', 'twilight', 'twilight_r', 'twilight_shifted', 'twilight_shifted_r',
     'viridis', 'viridis_r', 'winter', 'winter_r'
-] + [getattr(cm, cmap_name) for cmap_name in cm.cmapnames]
+]
+CMOCEAN_CMAPS = [getattr(cm, cmap_name) for cmap_name in cm.cmapnames]
 
 
 class Point:
