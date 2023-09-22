@@ -10,7 +10,7 @@ from my_hough import hough_py, hough_np, hough_numba
 CANVAS_WIDTH = 1400
 CANVAS_HEIGHT = 800
 
-with open('strokes/1.json', 'r') as stroke_f:
+with open('strokes/line_2.json', 'r') as stroke_f:
     stroke = Stroke(dict_points=json.load(stroke_f))
     points = stroke.to_py()
 
@@ -48,10 +48,15 @@ numba_start = datetime.now()
 thetas, rhos, accumulator = hough_numba(edges, thetas=thetas_)
 numba_end = datetime.now()
 
-py_duration = (py_end - py_start).microseconds
-np_duration = (np_end - np_start).microseconds
-numba_duration = (numba_end - numba_start).microseconds
+py_duration = (py_end - py_start).total_seconds()
+np_duration = (np_end - np_start).total_seconds()
+numba_duration = (numba_end - numba_start).total_seconds()
 
-print(f'Pure Python implementation took: {(py_duration / 1000):.2f} ms')
-print(f'NumPy implementation took: {(np_duration / 1000):.2f} ms')
-print(f'Numba implementation took: {(numba_duration / 1000):.2f} ms')
+print(f'Pure Python implementation took: {py_duration:.3f} s')
+print(f'NumPy implementation took: {np_duration:.3f} s')
+print(f'Numba implementation took: {numba_duration:.3f} s')
+
+# General performance -
+# Pure python - x s
+# NumPy - 10x s
+# Numba - x/10 s

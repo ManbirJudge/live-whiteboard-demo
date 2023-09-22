@@ -42,7 +42,7 @@ const drawElement = (context: CanvasRenderingContext2D, element: Element) => {
             break
 
         case "free":
-            drawStorke(
+            drawStroke(
                 context,
                 element.points,
                 element.color,
@@ -53,7 +53,6 @@ const drawElement = (context: CanvasRenderingContext2D, element: Element) => {
 }
 
 const drawLine = (context: CanvasRenderingContext2D, start: Point, end: Point, color: string, width: number, type: LineType, arrows: Arrows) => {
-    console.log('Drawing line')
     if (type !== 'simple') {
         context.lineCap = 'butt'
         context.save()
@@ -66,7 +65,6 @@ const drawLine = (context: CanvasRenderingContext2D, start: Point, end: Point, c
     context.moveTo(Math.round(start.x), Math.round(start.y))
     context.lineTo(Math.round(end.x), Math.round(end.y))
 
-    console.log(arrows)
     if (arrows == "end") {
         const angle = Math.atan2(end.y - start.y, end.x - start.x)
 
@@ -146,7 +144,7 @@ const drawEllipse = (context: CanvasRenderingContext2D, centre: Point, radiusX: 
     context.lineWidth = lineWidth
     context.stroke()
 }
-const drawStorke = (context: CanvasRenderingContext2D, points: Array<Point>, color: string, lineWidth: number, lineType: LineType) => {
+const drawStroke = (context: CanvasRenderingContext2D, points: Array<Point>, color: string, lineWidth: number, lineType: LineType) => {
     if (lineType !== 'simple') {
         context.lineCap = 'butt'
         context.save()
@@ -174,9 +172,7 @@ const drawStorke = (context: CanvasRenderingContext2D, points: Array<Point>, col
         context.setLineDash([])
     context.lineWidth = lineWidth
     context.stroke()
-
 }
-
 const drawCircle = (context: CanvasRenderingContext2D, centre: Point, radius: number, color: string, lineWidth: number, lineType: LineType) => drawEllipse(context, centre, radius, radius, color, lineWidth, lineType)
 
 const drawBoundingBox = (context: CanvasRenderingContext2D, bbox: BoundingBox, element: Element) => {
@@ -201,7 +197,7 @@ export {
     drawLine,
     drawRect,
     drawEllipse,
-    drawStorke,
+    drawStroke,
     drawCircle,
     drawBoundingBox
 }

@@ -5,7 +5,6 @@ import random
 from typing import Tuple, List
 
 import cv2
-import numpy as np
 import scipy.ndimage as ndi
 from matplotlib import pyplot as plt
 from numba import jit
@@ -56,14 +55,17 @@ def hough_py(
     return thetas, rhos, accumulator
 
 
+import numpy as np
+
+
 def hough_np(
-        img: np.ndarray | cv2.UMat,
+        img: np.ndarray,
         thetas: np.ndarray = None,
         quantize: bool = False,
         k_size: int = 1,
         decrease_f: int = 1
 ) -> (np.ndarray, np.ndarray, np.ndarray):
-    rho_max = int(np.ceil(np.sqrt(len(img) ** 2 + len(img[0]) ** 2)))
+    rho_max = int(np.ceil(np.sqrt(img.shape[0] ** 2 + img.shape[1] ** 2)))
 
     if thetas is None:
         thetas = np.linspace(
@@ -73,39 +75,39 @@ def hough_np(
             endpoint=False
         )
     rhos = np.arange(-rho_max, rho_max, 1)
-    accumulator = np.zeros(shape=(rho_max * 2, thetas.size), dtype=np.uint8)
+    accumulator = np.zeros((rho_max * 2, len(thetas)), dtype=np.uint8)
+    acc_shape = (rho_max * 2, len(thetas))
 
-    for y, row in enumerate(img):
-        for x, col in enumerate(row):
-            if col == 0:
+    for y in range(img.shape[0]):
+        for x in range(img.shape[1]):
+            if img[y, x] == 0:
                 continue
 
             for i, theta in enumerate(thetas):
-                rho = int(np.round(x * np.cos(theta) + y * np.sin(theta)))
+                rho = int(round(x * np.cos(theta) + y * np.sin(theta)))
 
-                accumulator[rho + rho_max][i] += 1
+                accumulator[rho + rho_max, i] += 1
 
                 if quantize:
                     for kr in range(-k_size, k_size + 1):
                         for ki in range(-k_size, k_size + 1):
                             new_rho = rho + rho_max + kr
                             new_i = i + ki
-
-                            if 0 <= new_rho < accumulator.shape[0] and 0 <= new_i < accumulator.shape[1]:
-                                accumulator[new_rho][new_i] += 1 * decrease_f
+                            if 0 <= new_rho < acc_shape[0] and 0 <= new_i < acc_shape[1]:
+                                accumulator[new_rho, new_i] += 1 * decrease_f
 
     return thetas, rhos, accumulator
 
 
 @jit(nopython=True)
 def hough_numba(
-        img: np.ndarray | cv2.UMat,
+        img: np.ndarray,
         thetas: np.ndarray = None,
         quantize: bool = False,
         k_size: int = 1,
         decrease_f: int = 1
 ) -> (np.ndarray, np.ndarray, np.ndarray):
-    rho_max = int(np.ceil(np.sqrt(len(img) ** 2 + len(img[0]) ** 2)))
+    rho_max = int(np.ceil(np.sqrt(img.shape[0] ** 2 + img.shape[1] ** 2)))
 
     if thetas is None:
         thetas = np.linspace(
@@ -114,26 +116,26 @@ def hough_numba(
             num=360
         )
     rhos = np.arange(-rho_max, rho_max, 1)
-    accumulator = np.zeros(shape=(rho_max * 2, thetas.size), dtype=np.uint8)
+    accumulator = np.zeros((rho_max * 2, len(thetas)), dtype=np.int32)
+    acc_shape = (rho_max * 2, len(thetas))
 
-    for y, row in enumerate(img):
-        for x, col in enumerate(row):
-            if col == 0:
+    for y in range(img.shape[0]):
+        for x in range(img.shape[1]):
+            if img[y, x] == 0:
                 continue
 
             for i, theta in enumerate(thetas):
-                rho = int(np.round(x * np.cos(theta) + y * np.sin(theta)))
+                rho = int(round(x * np.cos(theta) + y * np.sin(theta)))
 
-                accumulator[rho + rho_max][i] += 1
+                accumulator[rho + rho_max, i] += 1
 
                 if quantize:
                     for kr in range(-k_size, k_size + 1):
                         for ki in range(-k_size, k_size + 1):
                             new_rho = rho + rho_max + kr
                             new_i = i + ki
-
-                            if 0 <= new_rho < accumulator.shape[0] and 0 <= new_i < accumulator.shape[1]:
-                                accumulator[new_rho][new_i] += 1 * decrease_f
+                            if 0 <= new_rho < acc_shape[0] and 0 <= new_i < acc_shape[1]:
+                                accumulator[new_rho, new_i] += 1 * decrease_f
 
     return thetas, rhos, accumulator
 
@@ -170,6 +172,7 @@ def prominent_peaks(
         threshold=None,
         num_peaks=np.inf
 ):
+    img = img.copy()
     rows, cols = img.shape
 
     if threshold is None:
@@ -297,7 +300,7 @@ if __name__ == '__main__':
     stroke.draw_cv(canvas)
 
     print('Calculating edges.')
-    edges = cv2.bitwise_not(
+    edges = np.asarray(cv2.bitwise_not(
         cv2.threshold(
             cv2.cvtColor(
                 canvas,
@@ -307,22 +310,22 @@ if __name__ == '__main__':
             255,
             type=cv2.THRESH_BINARY
         )[1]
-    ) / 255
+    ) / 255, dtype=np.uint8)
 
     # hough transform
     print('Calculating hough transform.')
 
-    thetas = list(linspace(
-        start=-math.pi / 2,
-        stop=math.pi / 2,
+    thetas = np.linspace(
+        start=-np.pi / 2,
+        stop=np.pi / 2,
         num=720,
         endpoint=False
-    ))
-    thetas, rhos, accumulator = hough_py(edges, thetas=thetas, quantize=True, k_size=2)
+    )
+    thetas, rhos, accumulator = hough_numba(edges, thetas=thetas, quantize=True, k_size=2)
 
-    thetas = np.array(thetas)
-    rhos = np.array(rhos)
-    accumulator = np.array(accumulator)
+    # thetas = np.array(thetas)
+    # rhos = np.array(rhos)
+    # accumulator = np.array(accumulator)
 
     # peaks
     print('Calculating hough peaks.')
@@ -342,6 +345,10 @@ if __name__ == '__main__':
 
     print(f'Number of peaks: {len(lines_args)}')
     print(f'Colormap: {CMAP}')
+    print()
+    print(
+        '\n'.join([f'Line {i + 1}:\n\tSlope: {m:.3f}\n\tY-intercept: {c:.3f}' for i, (m, c) in enumerate(lines_args)])
+    )
 
     plt.imshow(canvas, cmap=CMAP)
     for m, c in lines_args:

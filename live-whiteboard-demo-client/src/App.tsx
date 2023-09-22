@@ -5,13 +5,14 @@ import Input from "antd/es/input/Input"
 import { DeleteFilled, CopyFilled, DownOutlined } from '@ant-design/icons'
 import { v4 as uuid } from "uuid"
 
-import CanvasCursor from './assets/cursor.cur'
+import PencilCursor from './assets/pencil.cur'
+import EraserCursor from './assets/eraser.cur'
 
 import { Point, LineType, Element, Free } from "./types/Element"
 import BoundingBox from "./types/BoundingBox"
-import { drawRect, drawElement } from "./utils/CanvasUtils"
+import { drawRect, drawElement, drawCircle } from "./utils/CanvasUtils"
 import { calcBoundingBox, pointInsideBoundingBox } from "./utils/BoundingBoxUtils"
-import { pointInsideBox, pointInsideCircle, throttle } from "./utils/Utils"
+import { lineSegmentIntersectsCircle, pointInsideBox, pointInsideCircle, throttle } from "./utils/Utils"
 import { translateElement } from "./utils/ShapeUtils"
 import { randomColorHex } from "./utils/ColorUtils"
 import chaikinSmooth from "./algorithms/ChaikinSmooth"
@@ -26,7 +27,7 @@ const CANVAS_WIDTH_PX = 800
 const CANVAS_HEIGHT_PX = 600
 
 const OUTPUT_STROKE_DATA = false
-const COPY_STROKE_DATA = false
+const COPY_STROKE_DATA = true
 
 const DEBUG_COLOR = '#4287f5'
 
@@ -68,7 +69,7 @@ function App() {
 	const canvasRef = useRef<HTMLCanvasElement | null>(null)
 	const frontCanvasRef = useRef<HTMLCanvasElement | null>(null)
 
-	const [canvasCursor, setCanvasCursor] = useState<CSSProperties['cursor']>(`url(${CanvasCursor}), crosshair`)
+	const [canvasCursor, setCanvasCursor] = useState<CSSProperties['cursor']>(`url(${PencilCursor}), crosshair`)
 	const [drawColor, setDrawColor] = useState<string>(randomColorHex())
 	const [drawWidth, setDrawWidth] = useState<number>(3)
 
@@ -109,10 +110,9 @@ function App() {
 		frontContext.fillStyle = 'transparent'
 		frontContext.fillRect(0, 0, frontRect.width, frontRect.height)
 
-		// calculating active Ele
+		// calculating somethings
 		let newActiveEle: Element | null = activeEle
 		let newSelectedBoundingRect: BoundingBox | null = null
-
 
 		if (mouseDown) {
 			if (selectedId !== null) {
@@ -120,7 +120,6 @@ function App() {
 
 				const transX = mousePos.x - startMousePos.x
 				const transY = mousePos.y - startMousePos.y
-
 
 				newSelectedBoundingRect = {
 					start: {
@@ -131,6 +130,28 @@ function App() {
 						y: selectedBoundingRect.end.y + transY
 					},
 				}
+			} else if (activeToolType === 'eraser') {
+				const erasedElesI: number[] = []
+
+				drawnEles.forEach((ele, i) => {
+					switch (ele.name) {
+						case "line":
+							if (lineSegmentIntersectsCircle(ele.start, ele.end, mousePos, drawWidth))
+								erasedElesI.push(i)
+
+							break
+						case "rectangle":
+							break
+
+						case "ellipse":
+							break
+
+						case "free":
+							break
+					}
+				})
+
+				console.log(erasedElesI)
 			} else {
 				const newActiveEleId = uuid()
 
@@ -198,9 +219,6 @@ function App() {
 						}
 						break
 
-					case 'eraser':
-						break
-
 					default:
 						newActiveEle = null
 						break
@@ -209,6 +227,10 @@ function App() {
 		}
 
 		setActiveEle(newActiveEle)
+
+		// drawing eraser
+		if (activeToolType === 'eraser')
+			drawCircle(frontContext, mousePos, drawWidth, '#BFBFBFA3', 1.5, 'dashed')
 
 		// selected ele things
 		let actualBoundingRect = newSelectedBoundingRect !== null ? newSelectedBoundingRect : selectedBoundingRect
@@ -251,11 +273,11 @@ function App() {
 						break
 
 					case "line":
-						setCanvasCursor(`url(${CanvasCursor}), crosshair`)
+						setCanvasCursor(`url(${PencilCursor}), crosshair`)
 						break
 
 					case "free":
-						setCanvasCursor(`url(${CanvasCursor}), crosshair`)
+						setCanvasCursor(`url(${PencilCursor}), crosshair`)
 						break
 
 					case "rectangle":
@@ -494,11 +516,11 @@ function App() {
 				break
 
 			case "line":
-				setCanvasCursor(`url(${CanvasCursor}), crosshair`)
+				setCanvasCursor(`url(${PencilCursor}), crosshair`)
 				break
 
 			case "free":
-				setCanvasCursor(`url(${CanvasCursor}), crosshair`)
+				setCanvasCursor(`url(${PencilCursor}), crosshair`)
 				break
 
 			case "rectangle":
@@ -510,7 +532,7 @@ function App() {
 				break
 
 			case "eraser":
-				setCanvasCursor('pointer')
+				setCanvasCursor(`url(${EraserCursor}), crosshair`)
 				break
 
 			case "default":
@@ -743,7 +765,7 @@ function App() {
 									<Radio value="dotted">Dotted</Radio>
 								</Space>
 							</Radio.Group>
-							<Slider style={{ height: '100px' }} value={drawWidth} onChange={setDrawWidth} vertical max={10} min={0.5} step={0.5} />
+							<Slider style={{ height: '100px' }} value={drawWidth} onChange={setDrawWidth} vertical max={activeToolType !== 'eraser' ? 10 : 40} min={0.5} step={0.5} />
 							<ColorPicker value={drawColor} showText={true} onChangeComplete={color => { setDrawColor(color.toHexString()); console.log(`[DEBUG] New selected draw color: ${color}`) }} />
 						</Space>
 
