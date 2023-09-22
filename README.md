@@ -1,38 +1,38 @@
-# Live Whiteboard Demo
-This project demonstrates the optimal way to build a  live whiteboard application, standalone or as a part of a bigger project (something like Zoom). It is made to be fast, efficient, reliable and robust on each device, either a slow one or fast one either with a slow or fast internet connection. It uses various specialized techneques for making the user experience better.
+# ਲਾਈਵ ਵ੍ਹਾਈਟਬੋਰਡ ਡੈਮੋ (Live Whiteboard Demo)
+ਇਹ ਪ੍ਰੋਜੈਕਟ ਲਾਈਵ ਵ੍ਹਾਈਟਬੋਰਡ ਐਪਲੀਕੇਸ਼ਨ, ਸਟੈਂਡਅਲੋਨ ਜਾਂ ਇੱਕ ਵਿਸ਼ਾਲ ਪ੍ਰੋਜੈਕਟ (ਜ਼ੂਮ ਵਰਗੀਆਂ ਐਪਲੀਕੇਸ਼ਨਾਂ) ਦੇ ਇੱਕ ਹਿੱਸੇ ਵਜੋਂ ਬਣਾਉਣ ਦਾ ਅਨੁਕੂਲ ਤਰੀਕਾ ਦਰਸਾਉਂਦਾ ਹੈ। ਇਹ ਕਿਸੇ ਵੀ ਇੰਟਰਨੈਟ ਕਨੈਕਟੀਵਿਟੀ ਦੇ ਨਾਲ ਹਰੇਕ ਡਿਵਾਈਸ 'ਤੇ ਤੇਜ਼, ਕੁਸ਼ਲ, ਭਰੋਸੇਮੰਦ ਅਤੇ ਮਜ਼ਬੂਤ ​​ਬਣਾਇਆ ਗਿਆ ਹੈ, (ਜਾਂ ਤਾਂ ਇੱਕ ਹੌਲੀ ਜਾਂ ਤੇਜ਼)। ਇਹ ਉਪਭੋਗਤਾ ਅਨੁਭਵ ਨੂੰ ਬਿਹਤਰ ਬਣਾਉਣ ਲਈ ਵੱਖ-ਵੱਖ ਵਿਸ਼ੇਸ਼ ਤਕਨੀਕਾਂ ਦੀ ਵਰਤੋਂ ਕਰਦਾ ਹੈ।
 
-## Structure 
-- Client-side code in `live-whiteboard-demo-client`
-- Server-side code in `live_whiteboard_demo_server`
-- Testing for new techniques and algorithms in `algorithms-lab`
+## ਬਣਤਰ 
+- `live-whiteboard-demo-client` ਵਿੱਚ ਕਲਾਇੰਟ-ਸਾਈਡ ਕੋਡ
+- `live_whiteboard_demo_server` ਵਿੱਚ ਸਰਵਰ-ਸਾਈਡ ਕੋਡ
+- `algorithms-lab` ਵਿੱਚ ਨਵੀਆਂ ਤਕਨੀਕਾਂ ਅਤੇ ਐਲਗੋਰਿਦਮ ਲਈ ਟੈਸਟਿੰਗ
 
-## Features
-- Simple shapes like lines, rectangles and ellipses.
-- Hand-drawn strokes.
-- Variable width and color.
-- Different line types - simple, dashed and dotted.
-- Automatic smoothing of hand-drawn strokes (using Chaikin Smooth Algorithm).
-- Decreasing number of points in a hand-drawn stroke for effecient memory management and live communication (using RDP algorithm).
-- A robust selection tool.
-- Translation of elements (after selection).d
-- Changing properties of elements after they have been added.
+## ਵਿਸ਼ੇਸ਼ਤਾਵਾਂ
+- ਸਧਾਰਨ ਆਕਾਰ ਜਿਵੇਂ ਕਿ ਲਾਈਨਾਂ, ਆਇਤਕਾਰ ਅਤੇ ਅੰਡਾਕਾਰ।
+- ਹੱਥ ਨਾਲ ਖਿੱਚੇ ਗਏ ਸਟ੍ਰੋਕ।
+- ਵੇਰੀਏਬਲ ਚੌੜਾਈ ਅਤੇ ਰੰਗ.
+- ਵੱਖ-ਵੱਖ ਲਾਈਨਾਂ ਦੀਆਂ ਕਿਸਮਾਂ - ਸਧਾਰਨ, ਡੈਸ਼ਡ ਅਤੇ ਡਾਟਡ।
+- ਹੱਥ ਨਾਲ ਖਿੱਚੇ ਗਏ ਸਟ੍ਰੋਕ ਦੀ ਆਟੋਮੈਟਿਕ ਸਮੂਥਿੰਗ (ਚੈਕਿਨ ਸਮੂਥ ਐਲਗੋਰਿਦਮ ਦੀ ਵਰਤੋਂ ਕਰਦੇ ਹੋਏ)।
+- ਕੁਸ਼ਲ ਮੈਮੋਰੀ ਪ੍ਰਬੰਧਨ ਅਤੇ ਲਾਈਵ ਸੰਚਾਰ (ਆਰਡੀਪੀ ਐਲਗੋਰਿਦਮ ਦੀ ਵਰਤੋਂ ਕਰਦੇ ਹੋਏ) ਲਈ ਹੱਥ ਨਾਲ ਖਿੱਚੇ ਗਏ ਸਟ੍ਰੋਕ ਵਿੱਚ ਬਿੰਦੂਆਂ ਦੀ ਗਿਣਤੀ ਨੂੰ ਘਟਾਉਣਾ।
+- ਇੱਕ ਮਜ਼ਬੂਤ ਚੋਣ ਸੰਦ।
+- ਤੱਤਾਂ ਦਾ ਅਨੁਵਾਦ (ਚੋਣ ਤੋਂ ਬਾਅਦ) ਡੀ
+- ਤੱਤਾਂ ਦੇ ਜੋੜਨ ਤੋਂ ਬਾਅਦ ਉਹਨਾਂ ਦੀਆਂ ਵਿਸ਼ੇਸ਼ਤਾਵਾਂ ਨੂੰ ਬਦਲਣਾ.
 
 ## TODOS
-- The brutally, ruthlessly, harshly, oppresively, abusively hard to implement - ERASER.
-- More robust server-side.
-- Selection tool alternates between elements when clicked on the overlapping part of the elements.
-- Complete migration of offline capabilites to live.
-- Better stroke drawing using quadratic splines.
-- Hosting of the site.
-- Allow resizing of line, rectangles and ellipses when selection.
-- Find and implement a better way of communication changes in the drawn elements.
-- Implement representation of geometric information as ratios of the canvas width and height so that canvas can be resized according to the screen size.
+- ਬੇਰਹਿਮੀ ਨਾਲ, ਬੇਰਹਿਮੀ ਨਾਲ, ਕਠੋਰਤਾ ਨਾਲ, ਦਮਨਕਾਰੀ, ਅਪਮਾਨਜਨਕ ਤੌਰ 'ਤੇ ਲਾਗੂ ਕਰਨਾ ਔਖਾ - ERASER.
+- ਵਧੇਰੇ ਮਜ਼ਬੂਤ ਸਰਵਰ-ਸਾਈਡ।
+- ਐਲੀਮੈਂਟਸ ਦੇ ਓਵਰਲੈਪਿੰਗ ਹਿੱਸੇ 'ਤੇ ਕਲਿੱਕ ਕਰਨ ਵੇਲੇ ਚੋਣ ਟੂਲ ਤੱਤਾਂ ਦੇ ਵਿਚਕਾਰ ਬਦਲਦਾ ਹੈ।
+- ਰਹਿਣ ਲਈ ਔਫਲਾਈਨ ਸਮਰੱਥਾਵਾਂ ਦਾ ਪੂਰਾ ਮਾਈਗ੍ਰੇਸ਼ਨ।
+- ਚਤੁਰਭੁਜ ਸਪਲਾਈਨਾਂ ਦੀ ਵਰਤੋਂ ਕਰਦੇ ਹੋਏ ਬਿਹਤਰ ਸਟ੍ਰੋਕ ਡਰਾਇੰਗ।
+- ਸਾਈਟ ਦੀ ਮੇਜ਼ਬਾਨੀ.
+- ਚੋਣ ਕਰਨ ਵੇਲੇ ਲਾਈਨਾਂ, ਆਇਤਕਾਰ ਅਤੇ ਅੰਡਾਕਾਰ ਦਾ ਆਕਾਰ ਬਦਲਣ ਦੀ ਆਗਿਆ ਦਿਓ।
+- ਖਿੱਚੇ ਗਏ ਤੱਤਾਂ ਵਿੱਚ ਤਬਦੀਲੀਆਂ ਨੂੰ ਸੰਚਾਰ ਕਰਨ ਦਾ ਇੱਕ ਬਿਹਤਰ ਤਰੀਕਾ ਲੱਭੋ ਅਤੇ ਲਾਗੂ ਕਰੋ।
+- ਕੈਨਵਸ ਦੀ ਚੌੜਾਈ ਅਤੇ ਉਚਾਈ ਦੇ ਅਨੁਪਾਤ ਦੇ ਰੂਪ ਵਿੱਚ ਜਿਓਮੈਟ੍ਰਿਕ ਜਾਣਕਾਰੀ ਦੀ ਨੁਮਾਇੰਦਗੀ ਨੂੰ ਲਾਗੂ ਕਰੋ ਤਾਂ ਜੋ ਸਕ੍ਰੀਨ ਦੇ ਆਕਾਰ ਦੇ ਅਨੁਸਾਰ ਕੈਨਵਸ ਦਾ ਆਕਾਰ ਬਦਲਿਆ ਜਾ ਸਕੇ।
 
-## Maybe ...
-- Text elements.
-- Pressure based stroke drawing.
-- More advanced elements like -
-    - Various graphs.
-    - Tabular data like datasheets.
-    - Flow charts.
-    - Notes.
+## ਸ਼ਾਇਦ ...
+- ਟੈਕਸਟ ਤੱਤ।
+- ਦਬਾਅ ਅਧਾਰਤ ਸਟ੍ਰੋਕ ਡਰਾਇੰਗ.
+- ਹੋਰ ਉੱਨਤ ਤੱਤ ਜਿਵੇਂ -
+     - ਕਈ ਗ੍ਰਾਫ਼.
+     - ਟੇਬੂਲਰ ਡੇਟਾ ਜਿਵੇਂ ਕਿ ਡੇਟਾਸ਼ੀਟ।
+     - ਫਲੋ ਚਾਰਟ.
+     - ਨੋਟਸ.

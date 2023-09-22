@@ -663,6 +663,18 @@ function App() {
 			event.preventDefault()
 	}
 
+	const onSaveAsImageClicked = () => {
+		const canvas = canvasRef!.current!
+		const link = document.createElement('a')
+
+		const imageDataURL = canvas.toDataURL('image/png')
+
+		link.href = imageDataURL
+		link.download = 'canvas.png'
+
+		link.click()
+	}
+
 	// rendering
 	return (
 		<Context.Provider value={{}}>
@@ -767,6 +779,7 @@ function App() {
 							</Radio.Group>
 							<Slider style={{ height: '100px' }} value={drawWidth} onChange={setDrawWidth} vertical max={activeToolType !== 'eraser' ? 10 : 40} min={0.5} step={0.5} />
 							<ColorPicker value={drawColor} showText={true} onChangeComplete={color => { setDrawColor(color.toHexString()); console.log(`[DEBUG] New selected draw color: ${color}`) }} />
+							<Button type="primary" onClick={onSaveAsImageClicked}>Save as Image</Button>
 						</Space>
 
 						<div>
