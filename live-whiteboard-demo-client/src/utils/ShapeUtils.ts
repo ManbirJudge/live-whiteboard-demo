@@ -21,12 +21,12 @@ function translateElement(element: Element, translation: Translation): Element {
             return element
 
         case "ellipse":
-            element.centre.x += translation.x
-            element.centre.y += translation.y
+            element.center.x += translation.x
+            element.center.y += translation.y
 
             return element
 
-        case "free":
+        case "stroke":
             element.points = element.points.map(p => ({ x: p.x + translation.x, y: p.y + translation.y }))
 
             return element

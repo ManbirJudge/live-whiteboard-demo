@@ -1,5 +1,5 @@
 import BoundingBox from "../types/BoundingBox"
-import { Element, Ellipse, Free, Line, Rectangle } from "../types/Element"
+import { Element, Ellipse, Stroke, Line, Point, Rectangle } from "../types/Element"
 import { pointInsideBox } from "./Utils"
 
 function calcBoundingBox(element: Element): BoundingBox {
@@ -10,8 +10,8 @@ function calcBoundingBox(element: Element): BoundingBox {
             return calcBoundingBoxRect(element)
         case "ellipse":
             return calcBoundingBoxEllipse(element)
-        case "free":
-            return calcBoundingBoxFree(element)
+        case "stroke":
+            return calcBoundingBoxStroke(element)
     }
 }
 
@@ -42,24 +42,28 @@ function calcBoundingBoxRect(rect: Rectangle): BoundingBox {
 function calcBoundingBoxEllipse(ellipse: Ellipse): BoundingBox {
     return {
         start: {
-            x: ellipse.centre.x - ellipse.radiusX,
-            y: ellipse.centre.y - ellipse.radiusY
+            x: ellipse.center.x - ellipse.radiusX,
+            y: ellipse.center.y - ellipse.radiusY
         },
         end: {
-            x: ellipse.centre.x + ellipse.radiusX,
-            y: ellipse.centre.y + ellipse.radiusY
+            x: ellipse.center.x + ellipse.radiusX,
+            y: ellipse.center.y + ellipse.radiusY
         }
     }
 }
-function calcBoundingBoxFree(free: Free): BoundingBox {
-    let sx: number, sy: number, ex: number, ey: number
 
+function calcBoundingBoxStroke(stroke: Stroke): BoundingBox {
+    return calcBoundingBoxStrokePoints(stroke.points)
+}
+
+function calcBoundingBoxStrokePoints(points: Array<Point>): BoundingBox {
+    let sx: number, sy: number, ex: number, ey: number
 
     sx = screen.width
     sy = screen.height
     ex = ey = 0
 
-    free.points.forEach(point => {
+    points.forEach(point => {
         if (point.x < sx)
             sx = point.x
         if (point.y < sy)
@@ -84,6 +88,7 @@ export {
     calcBoundingBoxLine,
     calcBoundingBoxRect,
     calcBoundingBoxEllipse,
-    calcBoundingBoxFree,
+    calcBoundingBoxStroke,
+    calcBoundingBoxStrokePoints,
     pointInsideBoundingBox
 }

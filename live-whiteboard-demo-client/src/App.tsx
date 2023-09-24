@@ -8,11 +8,11 @@ import { v4 as uuid } from "uuid"
 import PencilCursor from './assets/pencil.cur'
 import EraserCursor from './assets/eraser.cur'
 
-import { Point, LineType, Element, Free } from "./types/Element"
+import { Point, LineType, Element, Stroke } from "./types/Element"
 import BoundingBox from "./types/BoundingBox"
 import { drawRect, drawElement, drawCircle } from "./utils/CanvasUtils"
 import { calcBoundingBox, pointInsideBoundingBox } from "./utils/BoundingBoxUtils"
-import { lineSegmentIntersectsCircle, pointInsideBox, pointInsideCircle, throttle } from "./utils/Utils"
+import { circleInteresectsBox, circleIntersectsEllipse, circleIntersectsStroke, lineSegmentIntersectsCircle, pointInsideBox, pointInsideCircle, throttle } from "./utils/Utils"
 import { translateElement } from "./utils/ShapeUtils"
 import { randomColorHex } from "./utils/ColorUtils"
 import chaikinSmooth from "./algorithms/ChaikinSmooth"
@@ -21,10 +21,10 @@ import { socket } from "./socket"
 import Appbar from "./components/Appbar"
 import Footer from "./components/Footer"
 
-// const CANVAS_WIDTH_PX = 1400
-// const CANVAS_HEIGHT_PX = 800
-const CANVAS_WIDTH_PX = 800
-const CANVAS_HEIGHT_PX = 600
+const CANVAS_WIDTH_PX = 1400
+const CANVAS_HEIGHT_PX = 800
+// const CANVAS_WIDTH_PX = 800
+// const CANVAS_HEIGHT_PX = 600
 
 const OUTPUT_STROKE_DATA = false
 const COPY_STROKE_DATA = true
@@ -73,7 +73,7 @@ function App() {
 	const [drawColor, setDrawColor] = useState<string>(randomColorHex())
 	const [drawWidth, setDrawWidth] = useState<number>(3)
 
-	const [activeToolType, setActiveToolType] = useState<string>('free')
+	const [activeToolType, setActiveToolType] = useState<string>('stroke')
 	const [activeLineType, setActiveLineType] = useState<LineType>('simple')
 
 	const [selectedId, setSelectedId] = useState<string | null>(null)
@@ -132,26 +132,47 @@ function App() {
 				}
 			} else if (activeToolType === 'eraser') {
 				const erasedElesI: number[] = []
+				const erasedElesId: string[] = []
 
 				drawnEles.forEach((ele, i) => {
 					switch (ele.name) {
 						case "line":
-							if (lineSegmentIntersectsCircle(ele.start, ele.end, mousePos, drawWidth))
+							if (lineSegmentIntersectsCircle(ele.start, ele.end, mousePos, drawWidth)) {
 								erasedElesI.push(i)
+								erasedElesId.push(ele.id)
+							}
 
 							break
+
 						case "rectangle":
+							if (circleInteresectsBox(ele.start, ele.end, mousePos, drawWidth) || pointInsideBox(mousePos, { start: ele.start, end: ele.end })) {
+								erasedElesI.push(i)
+								erasedElesId.push(ele.id)
+							}
+
 							break
 
 						case "ellipse":
+							if (circleIntersectsEllipse(mousePos, drawWidth, ele.center, ele.radiusX, ele.radiusY)) {
+								erasedElesI.push(i)
+								erasedElesId.push(ele.id)
+							}
+
 							break
 
-						case "free":
+						case "stroke":
+							if (circleIntersectsStroke(mousePos, drawWidth, ele.points)) {
+								erasedElesI.push(i)
+								erasedElesId.push(ele.id)
+							}
+
 							break
 					}
 				})
 
-				console.log(erasedElesI)
+				if (erasedElesI.length > 0) {
+					setDrawnEles(drawnEles.filter(ele => !erasedElesId.includes(ele.id)))
+				}
 			} else {
 				const newActiveEleId = uuid()
 
@@ -183,7 +204,7 @@ function App() {
 						break
 
 					case "ellipse":
-						const centre: Point = {
+						const center: Point = {
 							x: (startMousePos.x + mousePos.x) / 2,
 							y: (startMousePos.y + mousePos.y) / 2
 						}
@@ -191,7 +212,7 @@ function App() {
 						newActiveEle = {
 							id: newActiveEleId,
 							name: 'ellipse',
-							centre: centre,
+							center: center,
 							radiusX: Math.abs(mousePos.x - startMousePos.x) / 2,
 							radiusY: Math.abs(mousePos.y - startMousePos.y) / 2,
 							lineType: activeLineType,
@@ -201,16 +222,16 @@ function App() {
 						}
 						break
 
-					case "free":
-						if (activeEle !== null && activeEle.name === 'free') {
-							const newActiveFreeEle: Free = activeEle
-							newActiveFreeEle.points.push(mousePos)
+					case "stroke":
+						if (activeEle !== null && activeEle.name === 'stroke') {
+							const newActiveStrokeEle: Stroke = activeEle
+							newActiveStrokeEle.points.push(mousePos)
 
-							newActiveEle = newActiveFreeEle
+							newActiveEle = newActiveStrokeEle
 						} else {
 							newActiveEle = {
 								id: newActiveEleId,
-								name: 'free',
+								name: 'stroke',
 								lineType: activeLineType,
 								lineWidth: drawWidth,
 								color: drawColor,
@@ -276,7 +297,7 @@ function App() {
 						setCanvasCursor(`url(${PencilCursor}), crosshair`)
 						break
 
-					case "free":
+					case "stroke":
 						setCanvasCursor(`url(${PencilCursor}), crosshair`)
 						break
 
@@ -289,7 +310,7 @@ function App() {
 						break
 
 					case "eraser":
-						setCanvasCursor('pointer')
+						setCanvasCursor(`URL(${EraserCursor}), crosshair`)
 						break
 				}
 			}
@@ -388,7 +409,7 @@ function App() {
 					break
 
 				case 'ellipse':
-					const centre: Point = {
+					const center: Point = {
 						x: (startMousePos.x + mousePos.x) / 2,
 						y: (startMousePos.y + mousePos.y) / 2
 					}
@@ -396,7 +417,7 @@ function App() {
 					newEle = {
 						id: newEleId,
 						name: 'ellipse',
-						centre: centre,
+						center: center,
 						radiusX: Math.abs(mousePos.x - startMousePos.x) / 2,
 						radiusY: Math.abs(mousePos.y - startMousePos.y) / 2,
 						lineType: activeLineType,
@@ -406,7 +427,7 @@ function App() {
 					}
 					break
 
-				case 'free':
+				case 'stroke':
 					newEle = activeEle!
 					break
 			}
@@ -416,7 +437,7 @@ function App() {
 				return
 			}
 
-			if (newEle.name == 'free') {
+			if (newEle.name == 'stroke') {
 				if (newEle.points.length <= 1)
 					return
 
@@ -519,7 +540,7 @@ function App() {
 				setCanvasCursor(`url(${PencilCursor}), crosshair`)
 				break
 
-			case "free":
+			case "stroke":
 				setCanvasCursor(`url(${PencilCursor}), crosshair`)
 				break
 
@@ -532,7 +553,7 @@ function App() {
 				break
 
 			case "eraser":
-				setCanvasCursor(`url(${EraserCursor}), crosshair`)
+				setCanvasCursor(`URL(${EraserCursor}), crosshair`)
 				break
 
 			case "default":
@@ -663,6 +684,34 @@ function App() {
 			event.preventDefault()
 	}
 
+	const onMouseLeaveFrontCanvas = () => {
+		const frontCanvas = frontCanvasRef!.current!
+		const frontRect = frontCanvas.getBoundingClientRect()
+		const frontContext = frontCanvas.getContext('2d')!
+
+		// clearing the front canvas
+		frontContext.clearRect(0, 0, frontRect.width, frontRect.height)
+		frontContext.fillStyle = 'transparent'
+		frontContext.fillRect(0, 0, frontRect.width, frontRect.height)
+
+		// select element bounding box
+		if (selectedId !== null) {
+			drawRect(
+				frontContext,
+				selectedBoundingRect.start,
+				selectedBoundingRect.end,
+				DEBUG_COLOR,
+				1.5,
+				'dashed'
+			)
+		}
+	}
+
+	const onSelectionPopupDeleteBtnClick = () => {
+		setDrawnEles(drawnEles.filter(ele => ele.id !== selectedId))
+		setSelectedId(null)
+	}
+
 	const onSaveAsImageClicked = () => {
 		const canvas = canvasRef!.current!
 		const link = document.createElement('a')
@@ -722,6 +771,7 @@ function App() {
 									top: 0,
 									left: 0
 								}}
+								onMouseLeave={onMouseLeaveFrontCanvas}
 								onMouseDown={() => setMouseDown(true)}
 								onMouseUp={() => setMouseDown(false)}
 							/>
@@ -752,7 +802,7 @@ function App() {
 									</Dropdown>
 									<InputNumber size='small' min={0.5} max={10} step={0.5} value={selectionPopupLineWidth} onChange={val => val ? setSelectionPopupLineWidth(val) : null} />
 									<Button size='small' icon={<CopyFilled />} />
-									<Button size='small' icon={<DeleteFilled />} />
+									<Button size='small' icon={<DeleteFilled />} onClick={onSelectionPopupDeleteBtnClick} type="primary" />
 								</Card>
 								:
 								<></>
@@ -764,7 +814,7 @@ function App() {
 								<Space direction="vertical">
 									<Radio value="select">Select</Radio>
 									<Radio value="line">Line</Radio>
-									<Radio value="free">Free</Radio>
+									<Radio value="stroke">Stroke</Radio>
 									<Radio value="rectangle">Rectangle</Radio>
 									<Radio value="ellipse">Ellipse</Radio>
 									<Radio value="eraser">Eraser</Radio>

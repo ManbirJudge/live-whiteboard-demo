@@ -31,7 +31,7 @@ type Rectangle = {
 type Ellipse = {
     name: "ellipse"
     id: string
-    centre: Point
+    center: Point
     radiusX: number
     radiusY: number
     lineType: LineType
@@ -40,8 +40,8 @@ type Ellipse = {
     fill: boolean
 }
 
-type Free = {
-    name: "free"
+type Stroke = {
+    name: "stroke"
     id: string
     points: Array<Point>
     lineType: LineType
@@ -49,7 +49,7 @@ type Free = {
     color: string
 }
 
-type Element = Line | Rectangle | Ellipse | Free
+type Element = Line | Rectangle | Ellipse | Stroke
 
 export type {
     LineType,
@@ -58,6 +58,6 @@ export type {
     Line,
     Rectangle,
     Ellipse,
-    Free,
+    Stroke,
     Element
 }
