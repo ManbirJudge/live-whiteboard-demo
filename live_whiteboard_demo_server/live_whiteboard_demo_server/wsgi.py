@@ -20,27 +20,39 @@ class MainNamespace(socketio.Namespace):
     def on_connect(self, sid, environ):
         pass
 
-    def on_join_room(self, sid, room_id):
+    @staticmethod
+    def on_join_room(sid, room_id):
         sio.enter_room(sid, room_id)
+        sio.emit('connected_to_room', {'room_id': room_id}, to=sid)
 
-    def on_send_msg(self, sid, data: str):
+    @staticmethod
+    def on_send_msg(sid, data: str):
         data: dict = json.loads(data)
 
-        sio.emit('msg', json.dumps({
+        sio.emit('msg', {
             'text': data['text'],
             'sid': sid
-        }), room=data['room_id'], skip_sid=sid)
+        }, room=data['room_id'], skip_sid=sid)
 
-    def on_new_drawn_element(self, sid, data):
-        sio.emit('drawn_element_added', data['element'], room=data['room_id'], skip_sid=sid)
+    @staticmethod
+    def on_add_drawn_element(sid, data):
+        sio.emit('drawn_element_added', {
+            'element': data['element']
+        }, room=data['room_id'], skip_sid=sid)
 
-    def on_update_drawn_element(self, sid, data):
-        print('--------- Ele pdated')
-        sio.emit('drawn_element_updated', data['element'], room=data['room_id'], skip_sid=sid)
+    @staticmethod
+    def on_update_drawn_element(sid, data):
+        sio.emit('drawn_element_updated', {
+            'element': data['element']
+        }, room=data['room_id'], skip_sid=sid)
 
-    def on_delete_drawn_element(self, sid, data):
-        sio.emit('drawn_element_deleted', data['element_id'], room=data['room_id'], skip_sid=sid)
+    @staticmethod
+    def on_delete_drawn_elements(sid, data):
+        sio.emit('drawn_elements_deleted', {
+            'element_ids': data['element_ids']
+        }, room=data['room_id'], skip_sid=sid)
 
+    @staticmethod
     def on_disconnect(self, sid):
         pass
 

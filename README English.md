@@ -18,15 +18,16 @@ This project demonstrates the optimal way to build a  live whiteboard applicatio
 - Changing properties of elements after they have been added.
 
 ## TODOS
-- The brutally, ruthlessly, harshly, oppressively, abusively hard to implement - ERASER.
+- ~~The brutally, ruthlessly, harshly, oppressively, abusively hard to implement - ERASER.~~
 - More robust server-side.
 - The selection tool alternates between elements when clicking on the overlapping part of the elements.
-- Complete migration of offline capabilities to live.
-- Better stroke drawing using quadratic splines.
-- Hosting of the site.
+- ~~Complete migration of offline capabilities to live.~~
+- ~~Hosting of the site.~~
 - Allow resizing of lines, rectangles and ellipses when selection.
-- Find and implement a better way of communicating changes in the drawn elements.
 - Implement representation of geometric information as ratios of the canvas width and height so that the canvas can be resized according to the screen size.
+- Server hosting solution.
+- Better eraser.
+- Live capabilities for active element(s).
 
 ## Maybe ...
 - Text elements.

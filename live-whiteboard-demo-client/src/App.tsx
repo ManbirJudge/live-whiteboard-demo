@@ -132,14 +132,14 @@ function App() {
 				}
 			} else if (activeToolType === 'eraser') {
 				const erasedElesI: number[] = []
-				const erasedElesId: string[] = []
+				const erasedElesIds: string[] = []
 
 				drawnEles.forEach((ele, i) => {
 					switch (ele.name) {
 						case "line":
 							if (lineSegmentIntersectsCircle(ele.start, ele.end, mousePos, drawWidth)) {
 								erasedElesI.push(i)
-								erasedElesId.push(ele.id)
+								erasedElesIds.push(ele.id)
 							}
 
 							break
@@ -147,7 +147,7 @@ function App() {
 						case "rectangle":
 							if (circleInteresectsBox(ele.start, ele.end, mousePos, drawWidth) || pointInsideBox(mousePos, { start: ele.start, end: ele.end })) {
 								erasedElesI.push(i)
-								erasedElesId.push(ele.id)
+								erasedElesIds.push(ele.id)
 							}
 
 							break
@@ -155,7 +155,7 @@ function App() {
 						case "ellipse":
 							if (circleIntersectsEllipse(mousePos, drawWidth, ele.center, ele.radiusX, ele.radiusY)) {
 								erasedElesI.push(i)
-								erasedElesId.push(ele.id)
+								erasedElesIds.push(ele.id)
 							}
 
 							break
@@ -163,7 +163,7 @@ function App() {
 						case "stroke":
 							if (circleIntersectsStroke(mousePos, drawWidth, ele.points)) {
 								erasedElesI.push(i)
-								erasedElesId.push(ele.id)
+								erasedElesIds.push(ele.id)
 							}
 
 							break
@@ -171,7 +171,7 @@ function App() {
 				})
 
 				if (erasedElesI.length > 0) {
-					setDrawnEles(drawnEles.filter(ele => !erasedElesId.includes(ele.id)))
+					deleteDrawnElements(erasedElesIds)
 				}
 			} else {
 				const newActiveEleId = uuid()
@@ -354,26 +354,18 @@ function App() {
 					y: mousePos.y - startMousePos.y
 				}
 
-				const updatedDrawnEles = [...drawnEles]
+				updateDrawnElement(translateElement({ ...drawnEles.find(ele => ele.id === selectedId)! }, trans))
 
-				let selectedEle = updatedDrawnEles.find(ele => ele.id === selectedId)!
-				selectedEle = translateElement(selectedEle, trans)
-
-				setDrawnEles(updatedDrawnEles)
 				setSelectedBoundingRect(prev => ({
 					start: {
 						x: prev.start.x + trans.x,
 						y: prev.start.y + trans.y,
-					}, end: {
+					},
+					end: {
 						x: prev.end.x + trans.x,
 						y: prev.end.y + trans.y,
 					},
 				}))
-
-				socket.emit('update_drawn_element', {
-					element: selectedEle,
-					room_id: roomId
-				})
 
 				return
 			}
@@ -457,7 +449,7 @@ function App() {
 					navigator.clipboard.writeText(JSON.stringify(newEle.points))
 			}
 
-			setDrawnEles([...drawnEles, newEle])
+			addDrawnElement(newEle)
 			setActiveEle(null)
 
 			if (isConnectedToRoom)
@@ -503,15 +495,13 @@ function App() {
 		if (selectedId === null)
 			return
 
-		const updatedDrawnEles = [...drawnEles]
-
-		const selectedEle = updatedDrawnEles.find(val => val.id === selectedId)!
+		const selectedEle = { ...drawnEles.find(val => val.id === selectedId)! }
 
 		selectedEle.color = selectionPopupColor
 		selectedEle.lineType = selectionPopupActiveLineType as LineType
 		selectedEle.lineWidth = selectionPopupLineWidth
 
-		setDrawnEles(updatedDrawnEles)
+		updateDrawnElement(selectedEle)
 	}, [selectionPopupColor, selectionPopupActiveLineType, selectionPopupLineWidth])
 
 	useEffect(() => {
@@ -563,43 +553,29 @@ function App() {
 	}, [activeToolType])
 
 	// socket io
-	const onDrawnElementAdded = (data: Element) => {
+	const onDrawnElementAdded = (data: any) => {
 		console.log('[DEBUG] Someone drew new element.')
-
-		setDrawnEles(prev => [...prev, data])
-		drawDrawnEles(frontCanvasContext())
+		addDrawnElement(data.element, false)
 	}
-	const onDrawnElementUpdated = (updatedEle: Element) => {
-		const updatedEleId = updatedEle.id
-
-		const updatedDrawnEles = drawnEles.map(ele => {
-			if (ele.id === updatedEleId) {
-				return updatedEle
-			} else {
-				return ele
-			}
-		})
-
-		setDrawnEles(updatedDrawnEles)
-		drawDrawnEles(frontCanvasContext())
-
+	const onDrawnElementUpdated = (data: any) => {
 		console.log('[DEBUG] Someone updated drawn element.')
+		updateDrawnElement(data.element, false)
+	}
+	const onDrawnElementsDeleted = (data: any) => {
+		console.log('[DEBUG] Someone deleted drawn element(s).')
+		deleteDrawnElements(data.element_ids, false)
 	}
 
 	useEffect(() => {
 		function onConnect() {
 			setIsIoServerConnected(true)
-
-			socket.emit('join_room', roomId)
-			setIsConnectedToRoom(true)
 		}
 
 		function onDisconnect() {
 			setIsIoServerConnected(false)
 		}
 
-		function onMsg(data_: string) {
-			const data = JSON.parse(data_)
+		function onMsg(data: any) {
 			notificationsApi.info({
 				message: `Message from ${data.sid}`,
 				description: data.text
@@ -610,9 +586,10 @@ function App() {
 		socket.on('disconnect', onDisconnect)
 		socket.on('msg', onMsg)
 
+		socket.on('connected_to_room', ({ room_id }) => setRoomId(room_id))
 		socket.on('drawn_element_added', onDrawnElementAdded)
 		socket.on('drawn_element_updated', onDrawnElementUpdated)
-		socket.on('drawn_element_deleted', (ele_id: string) => console.log(`[DEBUG] Element deleted: ${ele_id}`))
+		socket.on('drawn_elements_deleted', onDrawnElementsDeleted)
 
 		return () => {
 			socket.off('connect', onConnect)
@@ -623,6 +600,43 @@ function App() {
 			socket.off('drawn_element_deleted', (ele_id: string) => console.log(`[DEBUG] Element deleted: ${ele_id}`))
 		}
 	})
+
+	// drawn element(s) functions
+	const addDrawnElement = (ele: Element, emit: boolean = true) => {
+		setDrawnEles([ele, ...drawnEles])
+		drawDrawnEles(frontCanvasContext())
+
+		if (emit && isIoServerConnected && isConnectedToRoom) {
+			socket.emit('add_drawn_element', {
+				element: ele,
+				room_id: roomId
+			})
+		}
+	}
+
+	const updateDrawnElement = (ele: Element, emit: boolean = true) => {
+		setDrawnEles(drawnEles.map(ele_ => ele_.id === ele.id ? ele : ele_))
+		drawDrawnEles(frontCanvasContext())
+
+		if (emit && isIoServerConnected && isConnectedToRoom) {
+			socket.emit('update_drawn_element', {
+				element: ele,
+				room_id: roomId
+			})
+		}
+	}
+
+	const deleteDrawnElements = (eleIds: Array<string>, emit: boolean = true) => {
+		setDrawnEles(drawnEles.filter(ele => !eleIds.includes(ele.id)))
+		drawDrawnEles(frontCanvasContext())
+
+		if (emit && isIoServerConnected && isConnectedToRoom) {
+			socket.emit('delete_drawn_elements', {
+				element_ids: eleIds,
+				room_id: roomId
+			})
+		}
+	}
 
 	// shortcuts
 	useEffect(() => {
@@ -708,7 +722,7 @@ function App() {
 	}
 
 	const onSelectionPopupDeleteBtnClick = () => {
-		setDrawnEles(drawnEles.filter(ele => ele.id !== selectedId))
+		deleteDrawnElements([selectedId!])
 		setSelectedId(null)
 	}
 
